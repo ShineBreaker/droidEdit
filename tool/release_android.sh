@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds the Android release APK and publishes it as a GitHub release, which is
 # what the in-app update check (lib/platform/app_updater.dart) looks for:
-# tag v<version> with an asset named osuEdit-<version>.apk.
+# tag v<version> with an asset named droidEdit-<version>.apk.
 #
 #   1. Bump `version:` in pubspec.yaml (name+build, e.g. 0.2.0+3; the build
 #      number must go up or Android refuses the update).
@@ -19,11 +19,11 @@ unset OSUEDIT_DEV # the release is the real app, not the .dev one
 version=$(sed -n 's/^version: *\([0-9.]*\).*/\1/p' pubspec.yaml)
 [ -n "$version" ] || { echo "no version in pubspec.yaml" >&2; exit 1; }
 "$FLUTTER" build apk --release --target-platform android-arm64
-apk="build/app/outputs/flutter-apk/osuEdit-$version.apk"
+apk="build/app/outputs/flutter-apk/droidEdit-$version.apk"
 cp build/app/outputs/flutter-apk/app-release.apk "$apk"
 echo "built $apk"
 if [ "${1:-}" = "--publish" ]; then
-  gh release create "v$version" "$apk" --title "osuEdit v$version" --generate-notes
+  gh release create "v$version" "$apk" --title "droidEdit v$version" --generate-notes
 else
-  echo "publish: gh release create v$version \"$apk\" --title \"osuEdit v$version\" --notes '...'"
+  echo "publish: gh release create v$version \"$apk\" --title \"droidEdit v$version\" --notes '...'"
 fi

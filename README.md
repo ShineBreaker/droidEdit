@@ -1,4 +1,4 @@
-# osuEdit_flutter
+# droidEdit
 
 osu! beatmap editor for Android / iOS, built with Flutter. Editing only; no gameplay.
 

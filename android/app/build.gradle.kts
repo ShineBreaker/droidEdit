@@ -30,7 +30,11 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.osuedit.osu_edit"
+        // Fork identity: differs from upstream's com.osuedit.osu_edit so this
+        // build installs alongside it. namespace above stays upstream's on
+        // purpose — the Kotlin source tree does not move, and the manifest
+        // providers key off ${applicationId} automatically.
+        applicationId = "io.github.shinebreaker.droidedit"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -45,7 +49,7 @@ android {
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
         }
-        manifestPlaceholders["appLabel"] = if (devBuild) "osuEdit Dev" else "osu_edit"
+        manifestPlaceholders["appLabel"] = if (devBuild) "droidEdit Dev" else "droidEdit"
         // On-device input tests (src/androidTest): real multi-finger touches via
         // UiAutomation. See MultiTouchTest.kt for how to run them.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

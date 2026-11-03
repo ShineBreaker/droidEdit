@@ -42,14 +42,14 @@ enum InstallResult {
 /// Checks the GitHub releases of this project for a newer version and, on
 /// Android, downloads its APK and hands it to the system installer.
 ///
-/// Releases are published as `osuEdit-<version>.apk` assets on tags like
-/// `v1.2.3` (the old Java app's pre-releases have other asset names and are
-/// ignored). Android only installs an update signed with the same key as the
-/// installed app and with a higher version code, so the check compares the
-/// release tag with the installed `versionName`.
+/// Releases are published as `droidEdit-<version>.apk` assets on tags like
+/// `v1.2.3` (upstream's `osuEdit-*` assets are ignored). Android only
+/// installs an update signed with the same key as the installed app and
+/// with a higher version code, so the check compares the release tag with
+/// the installed `versionName`.
 abstract final class AppUpdater {
-  static const repo = 'inix1257/osuEdit';
-  static final _apkName = RegExp(r'^osuEdit.*\.apk$', caseSensitive: false);
+  static const repo = 'ShineBreaker/droidEdit';
+  static final _apkName = RegExp(r'^droidEdit.*\.apk$', caseSensitive: false);
   static const _minInterval = Duration(hours: 12);
 
   /// Tests: replace the network call (the releases JSON list), the installed
@@ -138,7 +138,7 @@ abstract final class AppUpdater {
     try {
       final req = await client.getUrl(Uri.parse('https://api.github.com/repos/$repo/releases?per_page=20'));
       req.headers.set(HttpHeaders.acceptHeader, 'application/vnd.github+json');
-      req.headers.set(HttpHeaders.userAgentHeader, 'osuEdit');
+      req.headers.set(HttpHeaders.userAgentHeader, 'droidEdit');
       final res = await req.close().timeout(const Duration(seconds: 15));
       if (res.statusCode != 200) throw HttpException(tr('GitHub answered {code}', {'code': res.statusCode}));
       final body = await res.transform(utf8.decoder).join().timeout(const Duration(seconds: 15));
@@ -217,7 +217,7 @@ abstract final class AppUpdater {
     final client = HttpClient()..connectionTimeout = const Duration(seconds: 15);
     try {
       final req = await client.getUrl(uri);
-      req.headers.set(HttpHeaders.userAgentHeader, 'osuEdit');
+      req.headers.set(HttpHeaders.userAgentHeader, 'droidEdit');
       final res = await req.close();
       if (res.statusCode != 200) throw HttpException(tr('Download failed ({code})', {'code': res.statusCode}));
       final total = res.contentLength > 0 ? res.contentLength : info.apkSize;

@@ -5,7 +5,7 @@
 // Run without wiping the app's library (`flutter test -d` uninstalls it):
 //   flutter build apk --debug -t integration_test/sample_budget_device_test.dart
 //   adb install -r build/app/outputs/flutter-apk/app-debug.apk
-//   adb shell am start -n com.osuedit.osu_edit/.MainActivity
+//   adb shell am start -n io.github.shinebreaker.droidedit/.MainActivity
 //   adb logcat -s flutter | grep BUDGET
 // then reinstall the release build.
 import 'dart:io';

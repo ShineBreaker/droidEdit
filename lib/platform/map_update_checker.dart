@@ -18,7 +18,7 @@ class MapUpdateChecker {
     final client = HttpClient()..connectionTimeout = const Duration(seconds: 10);
     try {
       final req = await client.getUrl(Uri.parse('https://osu.ppy.sh/osu/$beatmapId'));
-      req.headers.set(HttpHeaders.userAgentHeader, 'osuEdit');
+      req.headers.set(HttpHeaders.userAgentHeader, 'droidEdit');
       final res = await req.close().timeout(const Duration(seconds: 15));
       if (res.statusCode == 404) return null;
       if (res.statusCode != 200) throw HttpException(tr('osu! answered {code}', {'code': res.statusCode}));

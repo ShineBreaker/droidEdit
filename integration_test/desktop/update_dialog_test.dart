@@ -24,9 +24,9 @@ void main() {
             'prerelease': false,
             'draft': false,
             'body': '- Long-press a difficulty for a menu\n- Refresh feedback\n- Update check',
-            'html_url': 'https://github.com/inix1257/osuEdit/releases/tag/v0.2.0',
+            'html_url': 'https://github.com/ShineBreaker/droidEdit/releases/tag/v0.2.0',
             'assets': [
-              {'name': 'osuEdit-0.2.0.apk', 'size': 1, 'browser_download_url': 'https://example.com/osuEdit-0.2.0.apk'},
+              {'name': 'droidEdit-0.2.0.apk', 'size': 1, 'browser_download_url': 'https://example.com/droidEdit-0.2.0.apk'},
             ],
           },
         ];

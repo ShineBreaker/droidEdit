@@ -3,12 +3,12 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:osu_edit/platform/app_updater.dart';
 
-Map<String, Object?> release(String tag, {String asset = 'osuEdit-x.apk', bool pre = false, bool draft = false}) => {
+Map<String, Object?> release(String tag, {String asset = 'droidEdit-x.apk', bool pre = false, bool draft = false}) => {
       'tag_name': tag,
       'prerelease': pre,
       'draft': draft,
       'body': 'notes $tag',
-      'html_url': 'https://github.com/inix1257/osuEdit/releases/tag/$tag',
+      'html_url': 'https://github.com/ShineBreaker/droidEdit/releases/tag/$tag',
       'assets': [
         {'name': asset, 'size': 10, 'browser_download_url': 'https://example.com/$tag/$asset'},
       ],
@@ -31,9 +31,9 @@ void main() {
     expect(cmp('0.9.9', '0.10.0'), lessThan(0));
   });
 
-  test('pickLatest: highest release with an osuEdit APK; skips drafts, pre-releases, old Java assets', () {
+  test('pickLatest: highest release with a droidEdit APK; skips drafts, pre-releases, upstream assets', () {
     final info = AppUpdater.pickLatest([
-      release('v0.03', asset: 'app-release.apk'),
+      release('v0.03', asset: 'osuEdit-0.03.apk'),
       release('v9.0.0', pre: true),
       release('v8.0.0', draft: true),
       release('v1.0.0'),
@@ -42,9 +42,9 @@ void main() {
       release('v2.0.0', asset: 'notes.txt'),
     ]);
     expect(info?.version, '1.2.0');
-    expect(info?.apkUrl, 'https://example.com/v1.2.0/osuEdit-x.apk');
+    expect(info?.apkUrl, 'https://example.com/v1.2.0/droidEdit-x.apk');
     expect(info?.notes, 'notes v1.2.0');
-    expect(AppUpdater.pickLatest([release('v0.03', asset: 'app-release.apk')]), isNull);
+    expect(AppUpdater.pickLatest([release('v0.03', asset: 'osuEdit-0.03.apk')]), isNull);
   });
 
   test('check: newer only, interval, skipped version, manual overrides', () async {
