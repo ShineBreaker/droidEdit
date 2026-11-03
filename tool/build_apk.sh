@@ -16,6 +16,7 @@ version=${VERSION:-$(sed -n 's/^version: *\([0-9.]*\).*/\1/p' pubspec.yaml)}
 # naming in lockstep with lib/platform/app_updater.dart's _apkName regex.
 out="build/app/outputs/flutter-apk/droidEdit-$version.apk"
 unset OSUEDIT_DEV  # release is the real app, not the .dev one
+"$FLUTTER" pub get
 "$FLUTTER" build apk --release --target-platform android-arm64
 mkdir -p "$(dirname "$out")"
 cp build/app/outputs/flutter-apk/app-release.apk "$out"
