@@ -55,6 +55,13 @@ jobs:
             echo "keyPassword=$KEY_PASSWORD"
           } > android/key.properties
           echo "Keystore written (size: $(wc -c < android/app/droidedit.keystore) bytes)"
+          # Diagnostic: dump key.properties with passwords masked so we can
+          # compare against the expected values without leaking secrets.
+          echo "--- key.properties ---"
+          sed 's/\(storePassword\|keyPassword\)=.*/\1=***/' android/key.properties
+          echo "--- keystore sanity ---"
+          ls -la android/app/droidedit.keystore
+          file android/app/droidedit.keystore || true
 
       - name: Resolve version
         id: ver
