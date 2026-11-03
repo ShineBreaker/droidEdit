@@ -886,14 +886,23 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
         // Back closes an open ⋮ menu first (it is not a route of its own).
         if (_menu.isOpen) return _menu.close();
         if (_controlPoints) return _closeControlPoints();
+        if (c.previewMode) {
+          c.previewMode = false;
+          return;
+        }
         await _close();
       },
       child: CallbackShortcuts(
-        bindings: _controlPoints
-            ? _controlPointsShortcuts
-            : _mode == EditorMode.compose
-                ? _shortcuts
-                : _modeShortcuts,
+        bindings: c.previewMode
+            ? {
+                const SingleActivator(LogicalKeyboardKey.escape): () => c.previewMode = false,
+                const SingleActivator(LogicalKeyboardKey.space): c.togglePlay,
+              }
+            : _controlPoints
+                ? _controlPointsShortcuts
+                : _mode == EditorMode.compose
+                    ? _shortcuts
+                    : _modeShortcuts,
         child: Focus(
           focusNode: _keys,
           autofocus: true,
@@ -901,7 +910,22 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
             listenable: c,
             builder: (context, _) => Scaffold(
               body: SafeArea(
-                child: Column(
+                child: c.previewMode
+                    ? Stack(
+                        children: [
+                          Positioned.fill(child: PlayfieldView(controller: c, preview: true)),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: FilledButton.tonalIcon(
+                              onPressed: () => c.previewMode = false,
+                              icon: const Icon(Icons.close, size: 18),
+                              label: Text(tr('Exit preview')),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
                   children: [
                     SizedBox(
                       height: EditorLayout.of(context).topBarHeight,
@@ -932,6 +956,7 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
                           'resnap' => _resnap(),
                           'movetime' => _moveNotesInTime(),
                           'language' => pickUiLanguage(context),
+                          'preview' => c.previewMode = true,
                           'revert' => _revert(),
                           _ => _close(),
                         },
@@ -1182,6 +1207,7 @@ class _EditorMenu extends StatelessWidget {
           if (MapFolder.supported && _mapFolderOf(c) != null) item('folder', 'Open map folder'),
           if (c.document.isInLibrary) item('copyhitsounds', 'Copy hitsounds to…'),
           const Divider(height: 1),
+          item('preview', 'Preview'),
           item('revert', 'Revert to saved…', enabled: c.isDirty),
         ]),
         group('Settings', Icons.tune, [

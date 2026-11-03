@@ -43,7 +43,10 @@ import '../../toast.dart';
 ///   While zoomed in, a pill at the top shows the zoom and resets it.
 class PlayfieldView extends StatefulWidget {
   final EditorController controller;
-  const PlayfieldView({super.key, required this.controller});
+
+  /// Preview mode: no gestures or editing overlays, just the painted map.
+  final bool preview;
+  const PlayfieldView({super.key, required this.controller, this.preview = false});
 
   /// Touch target radius of control points, in logical pixels.
   static const handleHitRadius = 22.0;
@@ -721,6 +724,11 @@ class _PlayfieldViewState extends State<PlayfieldView> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.preview) {
+      return RepaintBoundary(
+        child: CustomPaint(painter: PlayfieldPainter(c, preview: true), size: Size.infinite),
+      );
+    }
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = _size = constraints.biggest;

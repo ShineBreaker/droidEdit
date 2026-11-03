@@ -317,6 +317,8 @@ const zhStrings = <String, String>{
   'Previous bookmark': '上一个书签',
   'Next bookmark': '下一个书签',
   'Remove all bookmarks': '移除全部书签',
+  'Preview': '预览',
+  'Exit preview': '退出预览',
   'Map': '谱面',
   'Control points…': '控制点…',
   'Export .osz…': '导出 .osz…',

@@ -31,7 +31,11 @@ class PlayfieldPainter extends CustomPainter {
   final bool overview;
   final Size? viewport;
 
-  PlayfieldPainter(this.controller, {this.overview = false, this.viewport})
+  /// Preview mode: no editing visuals (selection, drafts, placement
+  /// cursor), the map drawn as in gameplay.
+  final bool preview;
+
+  PlayfieldPainter(this.controller, {this.overview = false, this.viewport, this.preview = false})
       : super(repaint: Listenable.merge([controller, controller.time, controller.playfieldZoom]));
 
   static final Expando<ui.Path> _bodyPaths = Expando();
@@ -76,7 +80,7 @@ class PlayfieldPainter extends CustomPainter {
     final preempt = controller.preempt;
     final fadeIn = controller.fadeIn;
 
-    _drawHiddenSelection(canvas, t, r, preempt);
+    if (!preview) _drawHiddenSelection(canvas, t, r, preempt);
     if (!overview && controller.showFollowPoints) _drawFollowPoints(canvas, t, r);
 
     // Later objects underneath: draw in reverse time order. How each part
@@ -88,7 +92,7 @@ class PlayfieldPainter extends CustomPainter {
       // The circle being placed takes its place (see _drawPlacementCursor).
       if (controller.isBeingReplaced(h)) continue;
       final colour = controller.shownComboColourOf(h);
-      final selected = controller.selection.contains(h);
+      final selected = !preview && controller.selection.contains(h);
       final stack = h is Spinner ? Vec2.zero : controller.stackOffsetOf(h);
       final stacked = stack != Vec2.zero;
       if (stacked) {
@@ -129,7 +133,7 @@ class PlayfieldPainter extends CustomPainter {
     }
 
     // Control points of the selected slider, above everything else.
-    final edited = controller.editedSlider;
+    final edited = preview ? null : controller.editedSlider;
     if (edited != null && objs.any((h) => identical(h, edited))) {
       final stack = controller.stackOffsetOf(edited);
       canvas.save();
@@ -140,13 +144,15 @@ class PlayfieldPainter extends CustomPainter {
           typed: controller.editsTyped(edited));
       canvas.restore();
     }
-    _drawDraft(canvas, r, tf.scale);
-    _drawDistanceGuide(canvas, t, tf.scale);
-    _drawSelectionBox(canvas, tf.scale);
-    _drawPlacementCursor(canvas, r, tf.scale);
+    if (!preview) {
+      _drawDraft(canvas, r, tf.scale);
+      _drawDistanceGuide(canvas, t, tf.scale);
+      _drawSelectionBox(canvas, tf.scale);
+      _drawPlacementCursor(canvas, r, tf.scale);
+    }
     if (overview) _drawViewport(canvas, tf.scale);
     canvas.restore();
-    if (!overview) _drawSelectionFrame(canvas, size, tf);
+    if (!overview && !preview) _drawSelectionFrame(canvas, size, tf);
   }
 
   /// The selection box on screen for osu!pixel bounds [min]..[max] and its
@@ -1474,7 +1480,10 @@ class PlayfieldPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant PlayfieldPainter old) =>
-      old.controller != controller || old.overview != overview || old.viewport != viewport;
+      old.controller != controller ||
+      old.overview != overview ||
+      old.viewport != viewport ||
+      old.preview != preview;
 }
 
 /// A slider body rendered by [PlayfieldPainter._drawCachedBody]: [image]'s

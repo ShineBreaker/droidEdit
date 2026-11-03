@@ -252,6 +252,16 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Preview mode: all chrome hidden, the map drawn as in gameplay.
+  /// Transient (not persisted); Compose only.
+  bool get previewMode => _previewMode;
+  bool _previewMode = false;
+  set previewMode(bool v) {
+    if (v == _previewMode) return;
+    _previewMode = v;
+    notifyListeners();
+  }
+
   /// Whether circles and slider ends play the hit animation at their time
   /// instead of lazer's hit markers (white, fading) — [ObjectVisuals].
   bool get hitAnimations => viewSettings.hitAnimations;
