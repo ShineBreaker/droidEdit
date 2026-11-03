@@ -1,0 +1,149 @@
+name: Sync Upstream
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 02:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: write   # push merge back to master
+  issues: write     # file an issue on conflict
+
+env:
+  UPSTREAM_URL: https://github.com/inix1257/osuEdit.git
+  UPSTREAM_BRANCH: master
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # need full history for merge-base check
+
+      - name: Fetch upstream
+        run: git fetch --no-tags "$UPSTREAM_URL" "$UPSTREAM_BRANCH"
+
+      - name: Check for new upstream commits
+        id: check
+        run: |
+          if git merge-base --is-ancestor FETCH_HEAD HEAD; then
+            echo "has_new=false" >> "$GITHUB_OUTPUT"
+            echo "Upstream is already merged; nothing to do."
+          else
+            echo "has_new=true" >> "$GITHUB_OUTPUT"
+            echo "Upstream HEAD: $(git log -1 --format='%h %s' FETCH_HEAD)"
+            echo "Fork HEAD:     $(git log -1 --format='%h %s' HEAD)"
+            git log --oneline HEAD..FETCH_HEAD | head -20
+          fi
+
+      - name: Configure git identity for the merge
+        if: steps.check.outputs.has_new == 'true'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge upstream
+        id: merge
+        if: steps.check.outputs.has_new == 'true'
+        run: |
+          if git merge --no-edit FETCH_HEAD; then
+            echo "merged=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "merged=false" >> "$GITHUB_OUTPUT"
+            echo "conflict_files=$(git diff --name-only --diff-filter=U | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+            git merge --abort || true
+          fi
+
+      - name: Set up Flutter for sanity check
+        if: steps.merge.outputs.merged == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.9'
+          cache: true
+
+      - name: Sanity check on merge result
+        id: sanity
+        if: steps.merge.outputs.merged == 'true'
+        run: |
+          set -o pipefail
+          if flutter pub get && flutter analyze lib/; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "Merge completed but analysis failed; not pushing."
+            echo "Resolve locally and push manually."
+          fi
+          # lib/ only: test/ pulls in flutter_soloud's native build hooks, which
+          # need a clang toolchain beyond what ubuntu-latest provides.
+
+      - name: Push merged master
+        if: steps.sanity.outputs.ok == 'true'
+        run: git push origin HEAD:master
+
+      - name: File an issue on sanity-check failure
+        if: steps.sanity.outputs.ok == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          upstream_sha=$(git rev-parse --short FETCH_HEAD)
+          {
+            echo "Upstream \`$UPSTREAM_URL\` merged cleanly but \`flutter analyze lib/\` fails."
+            echo
+            echo "**Upstream HEAD:** \`$upstream_sha\`"
+            echo "**Fork HEAD:**     \`$(git rev-parse --short HEAD)\` (contains the merge, not pushed)"
+            echo
+            echo "Pull locally, fix the analysis errors, then push \`master\` manually."
+          } > /tmp/sanity-issue.md
+          existing=$(gh issue list --repo "${{ github.repository }}" \
+            --state open --search "[upstream-sync]" --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "${{ github.repository }}" --body-file /tmp/sanity-issue.md
+          else
+            gh issue create --repo "${{ github.repository }}" \
+              --title "[upstream-sync] analyze fails after clean merge $upstream_sha" \
+              --body-file /tmp/sanity-issue.md \
+              || echo "::warning::issue creation failed; merge left unpushed"
+          fi
+
+      - name: File an issue on merge conflict
+        if: steps.merge.outputs.merged == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONFLICT_FILES: ${{ steps.merge.outputs.conflict_files }}
+        run: |
+          upstream_sha=$(git rev-parse --short FETCH_HEAD)
+          upstream_subj=$(git log -1 --format=%s FETCH_HEAD)
+          fork_sha=$(git rev-parse --short HEAD)
+          title="[upstream-sync] merge conflict with upstream $upstream_sha"
+          {
+            echo "Upstream \`$UPSTREAM_URL\` has new commits that conflict with this fork."
+            echo
+            echo "**Upstream HEAD:** \`$upstream_sha\` — $upstream_subj"
+            echo "**Fork HEAD:**     \`$fork_sha\`"
+            echo "**Conflicted files:** \`$CONFLICT_FILES\`"
+            echo
+            echo "Resolve locally:"
+            echo
+            echo '```bash'
+            echo "git fetch $UPSTREAM_URL $UPSTREAM_BRANCH"
+            echo "git merge FETCH_HEAD"
+            echo "# resolve conflicts, keep fork's applicationId / appLabel / updater repo"
+            echo "git push origin master"
+            echo '```'
+            echo
+            echo "Remember to keep:"
+            echo '- `applicationId = "io.github.shinebreaker.droidedit"` (upstream uses `com.osuedit.osu_edit`)'
+            echo '- `appLabel` → `droidEdit` / `droidEdit Dev`'
+            echo '- `AppUpdater.repo` → `ShineBreaker/droidEdit`, `_apkName` → `droidEdit-*.apk`'
+          } > /tmp/sync-issue.md
+          # De-dup: reuse an open sync issue if one exists, else create.
+          existing=$(gh issue list --repo "${{ github.repository }}" \
+            --state open --search "[upstream-sync]" --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "${{ github.repository }}" --body-file /tmp/sync-issue.md
+            echo "Commented on existing sync issue #$existing"
+          else
+            gh issue create --repo "${{ github.repository }}" --title "$title" --body-file /tmp/sync-issue.md \
+              || echo "::warning::issue creation failed (issues may be disabled); merge conflict left unresolved"
+          fi

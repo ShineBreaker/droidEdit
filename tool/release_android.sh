@@ -15,13 +15,13 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 FLUTTER=${FLUTTER:-/c/src/flutter/bin/flutter}
-unset OSUEDIT_DEV # the release is the real app, not the .dev one
+export FLUTTER
+
+# Shared with .github/workflows/build-release.yml so the APK naming and the
+# build flags live in one place.
+apk=$(./tool/build_apk.sh | tail -n 1)
 version=$(sed -n 's/^version: *\([0-9.]*\).*/\1/p' pubspec.yaml)
-[ -n "$version" ] || { echo "no version in pubspec.yaml" >&2; exit 1; }
-"$FLUTTER" build apk --release --target-platform android-arm64
-apk="build/app/outputs/flutter-apk/droidEdit-$version.apk"
-cp build/app/outputs/flutter-apk/app-release.apk "$apk"
-echo "built $apk"
+
 if [ "${1:-}" = "--publish" ]; then
   gh release create "v$version" "$apk" --title "droidEdit v$version" --generate-notes
 else
