@@ -94,7 +94,7 @@ void main() {
   });
 
   test('rules', () {
-    expect(OsuRules.circleRadius(4), closeTo(36.48, 1e-9));
+    expect(OsuRules.circleRadius(4), closeTo(67.2208, 1e-3));
     expect(OsuRules.preempt(9), 600);
     expect(OsuRules.preempt(5), 1200);
     expect(OsuRules.preempt(0), 1800);

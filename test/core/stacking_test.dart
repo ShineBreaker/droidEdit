@@ -55,8 +55,8 @@ void main() {
     expect(stack([circle(0, 100, 100), sp, circle(100, 100, 100)]), [1, 0, 0]);
   });
 
-  test('stack offset moves up-left by radius / 10 per level', () {
-    expect(stackOffset(2, 30), const Vec2(-6, -6));
-    expect(stackOffset(-1, 30), const Vec2(3, 3));
+  test('stack offset moves up-left by radius / 16 per level', () {
+    expect(stackOffset(2, 32), const Vec2(-4, -4));
+    expect(stackOffset(-1, 32), const Vec2(2, 2));
   });
 }

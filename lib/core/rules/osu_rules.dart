@@ -7,8 +7,13 @@ abstract final class OsuRules {
   static const playfieldWidth = 512.0;
   static const playfieldHeight = 384.0;
 
-  /// Hit circle radius in osu!pixels.
-  static double circleRadius(double cs) => 54.4 - 4.48 * cs;
+  /// Hit circle radius in osu!pixels — osu!droid's conversion:
+  /// `CircleSizeCalculator.droidCSToDroidScale(cs)` × the 64 osu!px texture
+  /// radius. Droid's CS scale is offset from standard's (the offset
+  /// `6.855634` fits the old device-based scale), so circles are much bigger
+  /// at equal CS (CS4 → ~67.2 osu!px, not 36.5).
+  static double circleRadius(double cs) =>
+      64 * math.max(1e-3, (1 - 0.7 * (cs - 11.855634) / 5) / 2 * 1.00041);
 
   /// The gameplay screen in osu!pixels (640x480 around the playfield on
   /// 4:3), as lazer's verifier approximates it (`CheckOffscreenObjects`):

@@ -71,8 +71,10 @@ List<int> computeStackHeights(
 }
 
 /// Display offset (osu!pixels) of an object with stack [height] for a circle
-/// of [radius]: `-height × radius / 10` on both axes.
+/// of [radius]: `-height × radius / 16` on both axes — osu!droid's
+/// `stackHeight × scale × -4` (`HitObject.stackOffsetMultiplier` in
+/// `GameMode.Droid`), where `scale = radius / 64`.
 Vec2 stackOffset(int height, double radius) {
-  final d = -height * radius / 10;
+  final d = -height * radius / 16;
   return Vec2(d, d);
 }

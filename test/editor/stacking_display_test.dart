@@ -28,7 +28,7 @@ void main() {
   test('stack heights and display positions', () {
     final c = make();
     final objs = c.beatmap.hitObjects;
-    final d = c.circleRadius / 10;
+    final d = c.circleRadius / 16;
     expect([for (final h in objs) c.stackHeightOf(h)], [1, 0, 1, 0]);
     expect(c.displayPositionOf(objs[2]), Vec2(300 - d, 300 - d));
     expect(c.displayPositionOf(objs[3]), const Vec2(300, 300));
