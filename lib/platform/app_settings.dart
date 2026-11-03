@@ -113,6 +113,28 @@ class ViewSettings {
       };
 }
 
+/// App-wide UI preferences (not per-map, unlike the groups above).
+class UiSettings {
+  /// 'system', 'en' or 'zh'.
+  String language;
+
+  /// Custom beatmap library root (a Songs-style folder holding one folder
+  /// per set — e.g. osu!droid's Songs folder, so the two apps share maps).
+  /// Null: the app's own private library.
+  String? libraryPath;
+
+  UiSettings({this.language = 'system', this.libraryPath});
+
+  factory UiSettings.fromJson(Map<String, Object?> j) => UiSettings(
+        language: switch (j['language']) { 'en' || 'zh' => j['language'] as String, _ => 'system' },
+        libraryPath: j['libraryPath'] is String && (j['libraryPath'] as String).isNotEmpty
+            ? j['libraryPath'] as String
+            : null,
+      );
+
+  Map<String, Object?> toJson() => {'language': language, if (libraryPath != null) 'libraryPath': libraryPath};
+}
+
 /// Curve type used for newly drawn sliders.
 enum DefaultSliderType { auto, bezier, linear, catmull }
 
@@ -167,25 +189,33 @@ class EditSettings {
       };
 }
 
-/// Persists [AudioSettings], [ViewSettings] and [EditSettings] as JSON in
-/// the app support folder (one set for all maps).
+/// Persists [AudioSettings], [ViewSettings], [EditSettings] and
+/// [UiSettings] as JSON in the app support folder (one set for all maps).
 class SettingsStore {
   final File file;
   final AudioSettings audio;
   final ViewSettings view;
   final EditSettings edit;
+  final UiSettings ui;
 
-  SettingsStore._(this.file, this.audio, this.view, this.edit);
+  SettingsStore._(this.file, this.audio, this.view, this.edit, this.ui);
 
   /// Used instead of the app's settings file when set (desktop integration
   /// tests keep theirs apart).
   static File? fileOverride;
 
+  /// The shared instance every caller sees, so a change saved from one
+  /// screen is what the others hold (separate stores would write each
+  /// other's stale values back).
+  static SettingsStore? _shared;
+
   static Future<SettingsStore> open() async {
     final override = fileOverride;
     if (override != null) return load(override);
+    final shared = _shared;
+    if (shared != null) return shared;
     final dir = await getApplicationSupportDirectory();
-    return load(File('${dir.path}${Platform.pathSeparator}settings.json'));
+    return _shared = await load(File('${dir.path}${Platform.pathSeparator}settings.json'));
   }
 
   /// Missing or corrupt files give defaults.
@@ -193,6 +223,7 @@ class SettingsStore {
     var audio = AudioSettings();
     var view = ViewSettings();
     var edit = EditSettings();
+    var ui = UiSettings();
     try {
       if (await file.exists()) {
         final j = jsonDecode(await file.readAsString());
@@ -205,11 +236,14 @@ class SettingsStore {
         if (j is Map<String, Object?> && j['edit'] is Map<String, Object?>) {
           edit = EditSettings.fromJson(j['edit'] as Map<String, Object?>);
         }
+        if (j is Map<String, Object?> && j['ui'] is Map<String, Object?>) {
+          ui = UiSettings.fromJson(j['ui'] as Map<String, Object?>);
+        }
       }
     } on FormatException {
       // keep defaults
     }
-    return SettingsStore._(file, audio, view, edit);
+    return SettingsStore._(file, audio, view, edit, ui);
   }
 
   Future<void>? _saving;
@@ -224,7 +258,9 @@ class SettingsStore {
         while (_dirty) {
           _dirty = false;
           await file.parent.create(recursive: true);
-          await file.writeAsString(jsonEncode({'audio': audio.toJson(), 'view': view.toJson(), 'edit': edit.toJson()}), flush: true);
+          await file.writeAsString(
+              jsonEncode({'audio': audio.toJson(), 'view': view.toJson(), 'edit': edit.toJson(), 'ui': ui.toJson()}),
+              flush: true);
         }
       } finally {
         _saving = null;

@@ -11,6 +11,8 @@ dependencies:
   file_picker: ^13.1.0
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   # 5.1.6 with a resampler fix (see packages/flutter_soloud/OSUEDIT_PATCH.md).
   flutter_soloud:
     path: packages/flutter_soloud
