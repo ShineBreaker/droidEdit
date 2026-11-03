@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/core.dart';
+import '../../l10n/strings.dart';
 import '../editor_controller.dart';
 import '../render/playfield_painter.dart';
 import '../render/playfield_transform.dart';
@@ -810,7 +811,7 @@ class _PlayfieldViewState extends State<PlayfieldView> {
       width: size,
       height: size,
       child: Tooltip(
-        message: locked ? 'Unlock width / height' : 'Lock width / height',
+        message: locked ? tr('Unlock width / height') : tr('Lock width / height'),
         child: Material(
           color: locked ? const Color(0xFFFFFFFF) : const Color(0xCC000000),
           shape: const CircleBorder(side: BorderSide(color: Color(0xFF000000), width: 1.5)),
@@ -819,7 +820,9 @@ class _PlayfieldViewState extends State<PlayfieldView> {
             onTap: () {
               c.scaleLocksAspect = !locked;
               AppToast.show(
-                locked ? 'Aspect ratio unlocked: width and height scale separately' : 'Aspect ratio locked',
+                locked
+                    ? tr('Aspect ratio unlocked: width and height scale separately')
+                    : tr('Aspect ratio locked'),
                 duration: const Duration(seconds: 2),
               );
             },
@@ -891,7 +894,7 @@ class _PlayfieldViewState extends State<PlayfieldView> {
                     color: remove ? scheme.error : scheme.primary,
                   ),
                   const SizedBox(width: 8),
-                  Text(remove ? 'Remove point' : 'Add point'),
+                  Text(remove ? tr('Remove point') : tr('Add point')),
                 ],
               ),
             ),
@@ -1009,10 +1012,10 @@ class _PlayfieldViewState extends State<PlayfieldView> {
                   child: Row(
                     children: [
                       if (m.canToggleRed)
-                        action(Icons.circle, const Color(0xFFFF4040), m.red ? 'Unset red anchor' : 'Red anchor',
-                            _applyRedAnchor),
+                        action(Icons.circle, const Color(0xFFFF4040),
+                            m.red ? tr('Unset red anchor') : tr('Red anchor'), _applyRedAnchor),
                       if (m.canRemove)
-                        action(Icons.remove_circle_outline, scheme.error, 'Remove point', _applyMenu),
+                        action(Icons.remove_circle_outline, scheme.error, tr('Remove point'), _applyMenu),
                     ],
                   ),
                 ),
@@ -1026,17 +1029,17 @@ class _PlayfieldViewState extends State<PlayfieldView> {
 
 /// Short names for the curve type buttons.
 String _typeName(PathType? t) => switch (t) {
-      null => 'Inherit',
-      PathType(kind: CurveType.perfectCircle) => 'Perfect',
-      _ => t.label,
+      null => tr('Inherit'),
+      PathType(kind: CurveType.perfectCircle) => tr('Perfect'),
+      _ => tr(t.label),
     };
 
 /// Names for the stable menu's curve type buttons.
 String _curveName(CurveType t) => switch (t) {
-      CurveType.bezier => 'Bezier',
-      CurveType.perfectCircle => 'Perfect',
-      CurveType.catmull => 'Catmull',
-      CurveType.linear => 'Linear',
+      CurveType.bezier => tr('Bezier'),
+      CurveType.perfectCircle => tr('Perfect'),
+      CurveType.catmull => tr('Catmull'),
+      CurveType.linear => tr('Linear'),
     };
 
 /// A two-finger transform of the selection box (see `_twoFinger`).
@@ -1143,7 +1146,7 @@ class _ZoomPill extends StatelessWidget {
           shape: const StadiumBorder(),
           clipBehavior: Clip.antiAlias,
           child: Tooltip(
-            message: 'Reset zoom',
+            message: tr('Reset zoom'),
             child: InkWell(
               onTap: controller.resetPlayfieldZoom,
               child: Padding(
@@ -1237,7 +1240,7 @@ class _PlayfieldOverviewState extends State<PlayfieldOverview> {
     final size = PlayfieldOverview.sizeFor(widget.viewport);
     final scheme = Theme.of(context).colorScheme;
     return Semantics(
-      label: 'Zoom overview',
+      label: tr('Zoom overview'),
       child: SizedBox.fromSize(
         size: size,
         child: DecoratedBox(

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/strings.dart';
+
 /// The editor's screens (osu!stable's top-left mode tabs).
 enum EditorMode {
   compose('Compose', Icons.edit),
@@ -32,7 +34,7 @@ class EditorModeButton extends StatelessWidget {
     final picked = await showGeneralDialog<Object>(
       context: context,
       barrierDismissible: true,
-      barrierLabel: 'Close',
+      barrierLabel: tr('Close'),
       barrierColor: Colors.transparent,
       transitionDuration: const Duration(milliseconds: 100),
       pageBuilder: (_, _, _) => Stack(
@@ -52,7 +54,7 @@ class EditorModeButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Tooltip(
-      message: 'Editor screen',
+      message: tr('Editor screen'),
       child: Padding(
         padding: const EdgeInsets.all(3),
         child: Material(
@@ -66,7 +68,7 @@ class EditorModeButton extends StatelessWidget {
               children: [
                 Icon(mode.icon, size: 18, color: scheme.onSecondaryContainer),
                 Text(
-                  mode == EditorMode.songSetup ? 'Setup' : mode.label,
+                  mode == EditorMode.songSetup ? tr('Setup') : tr(mode.label),
                   maxLines: 1,
                   style: TextStyle(fontSize: 10, height: 1.2, color: scheme.onSecondaryContainer),
                 ),
@@ -113,9 +115,9 @@ class _ModeList extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             for (final m in EditorMode.values)
-              _item(context, m.icon, m.label, m, selected: m == current),
+              _item(context, m.icon, tr(m.label), m, selected: m == current),
             const Divider(height: 1),
-            _item(context, Icons.linear_scale, 'Control Points', EditorModeButton._controlPoints),
+            _item(context, Icons.linear_scale, tr('Control Points'), EditorModeButton._controlPoints),
           ],
         ),
       ),

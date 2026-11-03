@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../app_fonts.dart';
 import '../../core/core.dart';
+import '../../l10n/strings.dart';
 import '../editor_controller.dart';
 import 'editor_icons.dart';
 import 'form_fields.dart';
@@ -132,8 +133,8 @@ class ComposeToolbox extends StatelessWidget {
 
   static String _setName(int? id) => switch (id) {
         null => '—',
-        SampleSet.auto => 'Auto',
-        _ => SampleSet.name(id),
+        SampleSet.auto => tr('Auto'),
+        _ => tr(SampleSet.name(id)),
       };
 
   @override
@@ -145,8 +146,8 @@ class ComposeToolbox extends StatelessWidget {
         width: EditorLayout.of(context).toolboxWidth,
         child: _TileColumn(children: [
           _SetPicker(
-            label: 'Sample',
-            tooltip: 'Sample set',
+            label: tr('Sample'),
+            tooltip: tr('Sample set'),
             icon: Icons.music_note_outlined,
             value: c.normalSetState,
             name: _setName,
@@ -154,8 +155,8 @@ class ComposeToolbox extends StatelessWidget {
             onSelected: c.setNormalSet,
           ),
           _SetPicker(
-            label: 'Addition',
-            tooltip: 'Addition sample set',
+            label: tr('Addition'),
+            tooltip: tr('Addition sample set'),
             icon: Icons.library_music_outlined,
             value: c.additionSetState,
             name: _setName,
@@ -166,8 +167,8 @@ class ComposeToolbox extends StatelessWidget {
             ToolboxTile(
               icon: icon,
               glyph: glyph,
-              label: label,
-              tooltip: '$label ($key)',
+              label: tr(label),
+              tooltip: tr('{label} ({key})', {'label': tr(label), 'key': key}),
               active: c.tool == tool,
               onTap: () => c.tool = tool,
             ),
@@ -204,7 +205,8 @@ class _SetPicker extends StatelessWidget {
       initialValue: value,
       onSelected: onSelected,
       itemBuilder: (_) => [
-        for (final o in options) PopupMenuItem(value: o, child: Text('$label: ${name(o)}')),
+        for (final o in options)
+          PopupMenuItem(value: o, child: Text(tr('{label}: {name}', {'label': label, 'name': name(o)}))),
       ],
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -240,8 +242,8 @@ class HitsoundToolbox extends StatelessWidget {
         ToolboxTile(
           icon: icon,
           glyph: glyph,
-          label: label,
-          tooltip: '$label ($key)',
+          label: tr(label),
+          tooltip: tr('{label} ({key})', {'label': tr(label), 'key': key}),
           active: c.additionState(flag),
           onTap: () => c.toggleAddition(flag),
         );
@@ -255,7 +257,7 @@ class HitsoundToolbox extends StatelessWidget {
             return ToolboxTile(
               icon: Icons.fiber_new_outlined,
               label: skip > 0 ? 'NC +$skip' : 'NC',
-              tooltip: 'New combo (Q) · long-press: colour skip',
+              tooltip: tr('New combo (Q) · long-press: colour skip'),
               active: c.newComboState,
               onTap: c.toggleNewCombo,
               onLongPress: () => showComboSkipPicker(tileContext, c),
@@ -267,8 +269,8 @@ class HitsoundToolbox extends StatelessWidget {
           Builder(
             builder: (tileContext) => ToolboxTile(
               icon: Icons.grid_4x4,
-              label: 'Grid ${c.gridSize}',
-              tooltip: 'Grid snap (T) · long-press: grid size',
+              label: tr('Grid {n}', {'n': c.gridSize}),
+              tooltip: tr('Grid snap (T) · long-press: grid size'),
               active: c.gridSnap,
               onTap: () => c.gridSnap = !c.gridSnap,
               onLongPress: () => showGridSettings(tileContext, c),
@@ -277,8 +279,8 @@ class HitsoundToolbox extends StatelessWidget {
           Builder(
             builder: (tileContext) => ToolboxTile(
               icon: Icons.straighten,
-              label: 'Dist ${formatSpacing(c.distanceSpacing)}×',
-              tooltip: 'Distance snap (Y) · long-press: distance spacing',
+              label: tr('Dist {n}×', {'n': formatSpacing(c.distanceSpacing)}),
+              tooltip: tr('Distance snap (Y) · long-press: distance spacing'),
               active: c.distanceSnap,
               onTap: () => c.distanceSnap = !c.distanceSnap,
               onLongPress: () => showDistanceSettings(tileContext, c),
@@ -286,8 +288,8 @@ class HitsoundToolbox extends StatelessWidget {
           ),
           ToolboxTile(
             icon: c.lockNotes ? Icons.lock_outline : Icons.lock_open,
-            label: 'Lock',
-            tooltip: 'Lock notes (L)',
+            label: tr('Lock'),
+            tooltip: tr('Lock notes (L)'),
             active: c.lockNotes,
             onTap: () => c.lockNotes = !c.lockNotes,
           ),
@@ -312,7 +314,7 @@ Future<void> _showSidePanel(BuildContext context, double height, Widget panel) {
   return showGeneralDialog<void>(
     context: context,
     barrierDismissible: true,
-    barrierLabel: 'Close',
+    barrierLabel: tr('Close'),
     barrierColor: Colors.transparent,
     transitionDuration: const Duration(milliseconds: 100),
     pageBuilder: (ctx, _, _) {
@@ -373,7 +375,7 @@ Future<void> showGridSettings(BuildContext context, EditorController c) => _show
       context,
       90,
       _SidePanel(
-        title: 'Grid size',
+        title: tr('Grid size'),
         controller: c,
         children: (c) => [
           SegmentedButton<int>(
@@ -393,13 +395,13 @@ Future<void> showDistanceSettings(BuildContext context, EditorController c) => _
       context,
       170,
       _SidePanel(
-        title: 'Distance snap',
+        title: tr('Distance snap'),
         controller: c,
         children: (c) => [
           // The slider steps 0.1 (stable's Alt+scroll); the field and the ±
           // buttons 0.01 (Alt+Shift+scroll).
           CommitSlider(
-            label: 'Distance spacing',
+            label: tr('Distance spacing'),
             value: c.distanceSpacing,
             min: EditorController.minDistanceSpacing,
             max: EditorController.maxDistanceSpacing,
@@ -439,7 +441,7 @@ Future<void> showComboSkipPicker(BuildContext context, EditorController c) async
   final picked = await showGeneralDialog<int>(
     context: context,
     barrierDismissible: true,
-    barrierLabel: 'Close',
+    barrierLabel: tr('Close'),
     barrierColor: Colors.transparent,
     transitionDuration: const Duration(milliseconds: 100),
     pageBuilder: (ctx, _, _) {
@@ -515,7 +517,7 @@ class _ComboSkipPanel extends StatelessWidget {
           children: [
             SizedBox(
               height: _header,
-              child: Text('Combo colour skip', style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+              child: Text(tr('Combo colour skip'), style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
             ),
             Row(children: [for (var n = 0; n < _perRow; n++) cell(n)]),
             const SizedBox(height: _gap),

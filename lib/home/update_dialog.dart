@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/strings.dart';
 import '../platform/app_updater.dart';
 import '../platform/web_links.dart';
 import '../toast.dart';
@@ -15,7 +16,7 @@ Future<void> checkForUpdates(BuildContext context, {bool manual = false}) async 
   try {
     info = await AppUpdater.check(manual: manual);
   } catch (_) {
-    if (manual) AppToast.show('Could not check for updates');
+    if (manual) AppToast.show(tr('Could not check for updates'));
     return;
   }
   if (!context.mounted) return;
@@ -23,8 +24,8 @@ Future<void> checkForUpdates(BuildContext context, {bool manual = false}) async 
     if (manual) {
       final v = await AppUpdater.currentVersion();
       AppToast.show(AppUpdater.isDevVersion(v)
-          ? 'Development build: updates come from the computer, not from releases'
-          : "You're up to date${v == null ? '' : ' (v$v)'}");
+          ? tr('Development build: updates come from the computer, not from releases')
+          : tr("You're up to date{v}", {'v': v == null ? '' : ' (v$v)'}));
     }
     return;
   }
@@ -63,20 +64,20 @@ class _UpdateDialogState extends State<_UpdateDialog> {
         case InstallResult.needsPermission:
           navigator.pop();
           AppToast.show(
-            'Allow installs from osuEdit in the settings that just opened, then check for updates again.',
+            tr('Allow installs from osuEdit in the settings that just opened, then check for updates again.'),
             duration: const Duration(seconds: 8),
           );
         case InstallResult.failed:
           setState(() {
             _progress = null;
-            _error = 'Could not start the installer.';
+            _error = tr('Could not start the installer.');
           });
       }
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _progress = null;
-        _error = e is HttpException ? e.message : 'Download failed: $e';
+        _error = e is HttpException ? e.message : tr('Download failed: {e}', {'e': e});
       });
     }
   }
@@ -88,19 +89,19 @@ class _UpdateDialogState extends State<_UpdateDialog> {
     return PopScope(
       canPop: !downloading,
       child: AppDialog(
-        title: Text('Update available: v${info.version}'),
+        title: Text(tr('Update available: v{v}', {'v': info.version})),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             if (downloading) ...[
-              Text('Downloading… ${(_progress! * 100).round()}%'),
+              Text(tr('Downloading… {p}%', {'p': (_progress! * 100).round()})),
               const SizedBox(height: 10),
               LinearProgressIndicator(value: _progress == 0 ? null : _progress),
             ] else ...[
               if (info.notes.isNotEmpty)
                 Flexible(child: SingleChildScrollView(child: Text(info.notes, style: const TextStyle(fontSize: 13))))
               else
-                const Text('A new version of osuEdit is available.'),
+                Text(tr('A new version of osuEdit is available.')),
               if (_error != null) ...[
                 const SizedBox(height: 10),
                 Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
@@ -116,18 +117,18 @@ class _UpdateDialogState extends State<_UpdateDialog> {
                     AppUpdater.skip(info.version);
                     Navigator.pop(context);
                   },
-                  child: const Text('Skip this version'),
+                  child: Text(tr('Skip this version')),
                 ),
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text('Later')),
+                TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Later'))),
                 if (AppUpdater.supported)
-                  FilledButton(onPressed: _update, child: const Text('Update'))
+                  FilledButton(onPressed: _update, child: Text(tr('Update')))
                 else
                   FilledButton(
                     onPressed: () {
                       WebLinks.open(info.pageUrl);
                       Navigator.pop(context);
                     },
-                    child: const Text('Open release page'),
+                    child: Text(tr('Open release page')),
                   ),
               ],
       ),

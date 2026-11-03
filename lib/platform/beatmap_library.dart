@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
+import '../l10n/strings.dart';
 
 import 'package:path_provider/path_provider.dart';
 
@@ -222,7 +223,7 @@ class BeatmapLibrary {
   static LibrarySet _importOsz(String rootPath, Uint8List bytes, String? fallbackName) {
     final entries = OszCodec.decode(bytes);
     final osu = entries.where((e) => e.path.toLowerCase().endsWith('.osu')).toList();
-    if (osu.isEmpty) throw const FormatException('The archive contains no .osu file');
+    if (osu.isEmpty) throw FormatException(tr('The archive contains no .osu file'));
 
     // Name the folder after the first difficulty that has metadata.
     var folder = fallbackName == null ? null : BeatmapNaming.sanitize(fallbackName);
@@ -434,7 +435,7 @@ class BeatmapLibrary {
     final file = File(path);
     final inSet = file.parent.parent.absolute.path == root.absolute.path;
     if (!inSet || !path.toLowerCase().endsWith('.osu')) {
-      throw StateError('Not a library difficulty: $path');
+      throw StateError(tr('Not a library difficulty: {path}', {'path': path}));
     }
     await file.delete();
   }
@@ -443,7 +444,7 @@ class BeatmapLibrary {
     final dir = Directory(set.path);
     // Never touch anything outside the library.
     if (dir.parent.absolute.path != root.absolute.path) {
-      throw StateError('Not a library set: ${set.path}');
+      throw StateError(tr('Not a library set: {path}', {'path': set.path}));
     }
     await dir.delete(recursive: true);
     await _setSliderFormat(set.path, null);

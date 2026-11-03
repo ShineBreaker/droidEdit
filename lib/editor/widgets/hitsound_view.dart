@@ -7,6 +7,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/core.dart';
+import '../../l10n/strings.dart';
 import '../editor_controller.dart';
 import '../render/hitsound_painter.dart';
 import '../render/timeline_painter.dart';
@@ -70,7 +71,7 @@ class HitsoundView extends StatelessWidget {
                           Container(width: 3, height: g.rowHeight * 0.5, color: _layerColour(layer)),
                           const SizedBox(width: 6),
                           Expanded(
-                            child: Text(layer.label, style: style, maxLines: 1, overflow: TextOverflow.fade, softWrap: false),
+                            child: Text(tr(layer.label), style: style, maxLines: 1, overflow: TextOverflow.fade, softWrap: false),
                           ),
                         ],
                       ),
@@ -282,7 +283,9 @@ class _HitsoundTimelineState extends State<HitsoundTimeline> with SingleTickerPr
       final p = c.timing.effectivePointAt(o.time + 5);
       if (p != null) {
         HitsoundSampleDialog.show(context, c,
-            point: p, note: "Sliders use their timing point's sample index and volume (osu! ignores a slider's own).");
+            point: p,
+            note: tr(
+                "Sliders use their timing point's sample index and volume (osu! ignores a slider's own)."));
       }
     } else if (o != null) {
       HitsoundSampleDialog.show(context, c, object: o);
@@ -382,7 +385,7 @@ class _HitsoundSampleDialogState extends State<HitsoundSampleDialog> {
       HitObject() => 'Circle',
       null => p!.uninherited ? 'Timing point' : 'Inherited point',
     };
-    return '$kind $time';
+    return tr('{kind} {time}', {'kind': tr(kind), 'time': time});
   }
 
   @override
@@ -407,21 +410,21 @@ class _HitsoundSampleDialogState extends State<HitsoundSampleDialog> {
                 ),
               Row(
                 children: [
-                  const Expanded(child: Text('Sample index')),
+                  Expanded(child: Text(tr('Sample index'))),
                   IconButton(
-                    tooltip: 'Lower index',
+                    tooltip: tr('Lower index'),
                     icon: const Icon(Icons.remove),
                     onPressed: index > 0 ? () => _set(index: index - 1) : null,
                   ),
                   SizedBox(
                     width: 64,
                     child: Text(
-                      index == 0 ? (object ? 'Inherit' : 'Default') : '$index',
+                      index == 0 ? (object ? tr('Inherit') : tr('Default')) : '$index',
                       textAlign: TextAlign.center,
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Raise index',
+                    tooltip: tr('Raise index'),
                     icon: const Icon(Icons.add),
                     onPressed: index < HitsoundSampleDialog.maxIndex ? () => _set(index: index + 1) : null,
                   ),
@@ -431,12 +434,12 @@ class _HitsoundSampleDialogState extends State<HitsoundSampleDialog> {
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   dense: true,
-                  title: const Text('Own volume'),
+                  title: Text(tr('Own volume')),
                   value: ownVolume,
                   onChanged: (on) => _set(volume: on ? _inheritedVolume : 0),
                 ),
               CommitSlider(
-                label: 'Volume',
+                label: tr('Volume'),
                 value: (ownVolume ? volume : _inheritedVolume).toDouble(),
                 min: 5,
                 max: 100,
@@ -447,7 +450,7 @@ class _HitsoundSampleDialogState extends State<HitsoundSampleDialog> {
             ],
           ),
         ),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Close')))],
       ),
     );
   }

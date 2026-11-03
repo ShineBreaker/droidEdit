@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/strings.dart';
 import '../platform/beatmap_library.dart';
 
 /// Pieces of the osu!stable-style song select (home screen): the blurred-out
@@ -183,7 +184,7 @@ class MapInfoPanel extends StatelessWidget {
                   if (set.creator.isNotEmpty)
                     Text.rich(
                       TextSpan(children: [
-                        const TextSpan(text: 'Mapped by ', style: TextStyle(color: Colors.white60)),
+                        TextSpan(text: tr('Mapped by '), style: const TextStyle(color: Colors.white60)),
                         TextSpan(text: set.creator, style: const TextStyle(color: _accent, fontWeight: FontWeight.w700)),
                       ]),
                       maxLines: 1,
@@ -196,7 +197,7 @@ class MapInfoPanel extends StatelessWidget {
             const SizedBox(width: 10),
             if (onUpdate != null) ...[
               Tooltip(
-                message: 'The osu! website has a different version of this difficulty',
+                message: tr('The osu! website has a different version of this difficulty'),
                 child: FilledButton.icon(
                   onPressed: onUpdate,
                   style: FilledButton.styleFrom(
@@ -206,7 +207,7 @@ class MapInfoPanel extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                   ),
                   icon: const Icon(Icons.system_update_alt, size: 16),
-                  label: const Text('Update', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  label: Text(tr('Update'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                 ),
               ),
               const SizedBox(width: 6),
@@ -233,7 +234,7 @@ class MapPageButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
     return Tooltip(
-      message: enabled ? 'Open the beatmap page on osu.ppy.sh' : 'Not submitted: no beatmap page',
+      message: enabled ? tr('Open the beatmap page on osu.ppy.sh') : tr('Not submitted: no beatmap page'),
       child: Material(
         color: enabled ? _accent.withValues(alpha: 0.22) : Colors.white10,
         shape: StadiumBorder(side: BorderSide(color: enabled ? _accent : Colors.white24)),
@@ -304,18 +305,18 @@ class _DifficultyStats extends StatelessWidget {
         ]),
         const SizedBox(height: 7),
         Wrap(runSpacing: 4, children: [
-          stat(icon(Icons.schedule), 'LENGTH', _formatLength(s.lastObjectTime)),
+          stat(icon(Icons.schedule), tr('LENGTH'), _formatLength(s.lastObjectTime)),
           stat(icon(Icons.music_note), 'BPM', _formatBpm(s.minBpm, s.maxBpm)),
-          stat(icon(Icons.circle), 'OBJECTS', '${s.hitObjectCount}'),
+          stat(icon(Icons.circle), tr('OBJECTS'), '${s.hitObjectCount}'),
         ]),
         const SizedBox(height: 4),
         Wrap(runSpacing: 4, children: [
-          _count('Circle', s.circleCount),
-          _count('Slider', s.sliderCount),
-          _count('Spinner', s.spinnerCount),
+          _count(tr('Circle'), s.circleCount),
+          _count(tr('Slider'), s.sliderCount),
+          _count(tr('Spinner'), s.spinnerCount),
         ]),
         const SizedBox(height: 8),
-        _StatBar(name: s.mode == 3 ? 'Keys' : 'CS', value: s.circleSize),
+        _StatBar(name: s.mode == 3 ? tr('Keys') : 'CS', value: s.circleSize),
         if (s.mode != 3 && s.mode != 1) _StatBar(name: 'AR', value: s.approachRate),
         _StatBar(name: 'OD', value: s.overallDifficulty),
         _StatBar(name: 'HP', value: s.hpDrain),
@@ -518,7 +519,8 @@ class DifficultyCard extends StatelessWidget {
     final s = d.summary;
     final sr = d.starRating;
     final color = sr == null ? Colors.white54 : starRatingColor(sr);
-    final mode = s.mode >= 0 && s.mode < _modeNames.length ? _modeNames[s.mode] : 'mode ${s.mode}';
+    final mode =
+        s.mode >= 0 && s.mode < _modeNames.length ? _modeNames[s.mode] : tr('mode {n}', {'n': s.mode});
     return AnimatedPadding(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
@@ -559,7 +561,7 @@ class DifficultyCard extends StatelessWidget {
                         if (sr != null) ...[_StarRow(sr: sr, color: color), const SizedBox(width: 6)],
                         Flexible(
                           child: Text(
-                            '${s.mode == 0 ? '' : '$mode · '}${s.hitObjectCount} objects',
+                            '${s.mode == 0 ? '' : '$mode · '}${tr('{n} objects', {'n': s.hitObjectCount})}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.w600),
@@ -714,7 +716,7 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
                       ),
                       if (o.message.isNotEmpty) ...[
                         const SizedBox(height: 14),
-                        Text(o.message,
+                        Text(tr(o.message),
                             style: TextStyle(
                                 color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.3)),
                       ],

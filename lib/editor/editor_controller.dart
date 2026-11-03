@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'dart:isolate';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+import '../l10n/strings.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
@@ -1251,9 +1252,9 @@ class EditorController extends ChangeNotifier {
       String? error;
       try {
         audio = await loader(setPath, beatmap);
-        if (audio == null) error = 'Audio file "${beatmap.audioFilename}" not found';
+        if (audio == null) error = tr('Audio file "{name}" not found', {'name': beatmap.audioFilename});
       } catch (e) {
-        error = 'Could not load audio: $e';
+        error = tr('Could not load audio: {e}', {'e': e});
       }
       if (_disposed || gen != _audioGeneration) {
         audio?.clock.dispose();
@@ -3756,7 +3757,7 @@ class EditorController extends ChangeNotifier {
 
   /// "Head", "Repeat n" or "Tail".
   static String edgeName(SliderObject s, int edge) =>
-      edge == 0 ? 'Head' : edge == s.slides ? 'Tail' : 'Repeat $edge';
+      edge == 0 ? tr('Head') : edge == s.slides ? tr('Tail') : tr('Repeat {n}', {'n': edge});
 
   /// Hitsound flags of edge [i] (the slider's own when the file has none,
   /// as osu! plays them).

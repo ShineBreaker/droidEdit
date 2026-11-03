@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../l10n/strings.dart';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
@@ -80,7 +81,7 @@ class BeatmapFileService {
     );
     if (file == null) return null;
     if (!exts.contains(file.extension?.toLowerCase())) {
-      throw FormatException('Please pick a ${exts.map((e) => '.$e').join(' / ')} file');
+      throw FormatException(tr('Please pick a {exts} file', {'exts': exts.map((e) => '.$e').join(' / ')}));
     }
     return file;
   }

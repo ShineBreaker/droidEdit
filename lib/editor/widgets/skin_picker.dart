@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../platform/beatmap_file_service.dart';
 import '../../platform/skin_library.dart';
 import '../../app_dialog.dart';
+import '../../l10n/strings.dart';
 
 /// Picks the editor's skin: the built-in look or an imported `.osk`; also
 /// imports and deletes skins. Applied live (the playfield follows
@@ -67,11 +68,11 @@ class _SkinPickerState extends State<_SkinPicker> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: const Text('Delete skin?'),
-        content: Text('"${skin.name}" will be removed from the app.'),
+        title: Text(tr('Delete skin?')),
+        content: Text(tr('"{name}" will be removed from the app.', {'name': skin.name})),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('Delete'))),
         ],
       ),
     );
@@ -94,7 +95,7 @@ class _SkinPickerState extends State<_SkinPicker> {
       actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
       title: Row(
         children: [
-          Text('Skin', style: Theme.of(context).textTheme.titleMedium),
+          Text(tr('Skin'), style: Theme.of(context).textTheme.titleMedium),
           const Spacer(),
           if (_busy) const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
         ],
@@ -108,8 +109,8 @@ class _SkinPickerState extends State<_SkinPicker> {
                 builder: (context, _, _) => ListView(
                   shrinkWrap: true,
                   children: [
-                    _tile(null, 'Default', 'Built-in look'),
-                    for (final s in skins) _tile(s, s.name, s.author == null ? null : 'by ${s.author}'),
+                    _tile(null, tr('Default'), tr('Built-in look')),
+                    for (final s in skins) _tile(s, s.name, s.author == null ? null : tr('by {author}', {'author': s.author})),
                     if (_message != null)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
@@ -123,9 +124,9 @@ class _SkinPickerState extends State<_SkinPicker> {
         TextButton.icon(
           onPressed: _busy || _manager.library == null ? null : _import,
           icon: const Icon(Icons.file_download_outlined),
-          label: const Text('Import .osk'),
+          label: Text(tr('Import .osk')),
         ),
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Done')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Done'))),
       ],
     );
   }
@@ -142,7 +143,7 @@ class _SkinPickerState extends State<_SkinPicker> {
       trailing: skin == null
           ? null
           : IconButton(
-              tooltip: 'Delete skin',
+              tooltip: tr('Delete skin'),
               icon: const Icon(Icons.delete_outline),
               onPressed: _busy ? null : () => _delete(skin),
             ),

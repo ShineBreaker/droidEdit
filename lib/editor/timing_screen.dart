@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../app_fonts.dart';
 import '../core/core.dart';
+import '../l10n/strings.dart';
 import 'editor_controller.dart';
 import 'editor_screen.dart' show formatEditorTime;
 import 'widgets/form_fields.dart';
@@ -226,8 +227,8 @@ class _ControlPointsPanelState extends State<ControlPointsPanel> {
                         child: shown.isEmpty
                             ? Center(
                                 child: Text(points.isEmpty
-                                    ? 'No timing points. Add a timing (red) point first.'
-                                    : 'No points match the filter.'),
+                                    ? tr('No timing points. Add a timing (red) point first.')
+                                    : tr('No points match the filter.')),
                               )
                             : ClipRRect(
                                 borderRadius: BorderRadius.circular(16),
@@ -263,7 +264,7 @@ class _ControlPointsPanelState extends State<ControlPointsPanel> {
                       onClear: _clearMarked,
                     )
                   : sel == null
-                      ? const Center(child: Text('Select a point'))
+                      ? Center(child: Text(tr('Select a point')))
                       : _PointEditor(
                           key: ValueKey(_selection),
                           point: sel,
@@ -310,17 +311,17 @@ class _ControlPointsPanelState extends State<ControlPointsPanel> {
       SetupChoicePill<_PointFilter>(
         value: _filter,
         choices: _PointFilter.values,
-        name: (f) => f.label,
-        tooltip: 'Filter',
+        name: (f) => tr(f.label),
+        tooltip: tr('Filter'),
         onPick: (f) => setState(() => _filter = f),
       ),
       const SizedBox(width: 8),
-      Text('${shown.length} shown', style: Theme.of(context).textTheme.bodySmall),
+      Text(tr('{n} shown', {'n': shown.length}), style: Theme.of(context).textTheme.bodySmall),
       const Spacer(),
       TextButton.icon(
         onPressed: shown.isEmpty ? null : () => _selectAll(shown),
         icon: const Icon(Icons.select_all, size: 18),
-        label: const Text('Select all'),
+        label: Text(tr('Select all')),
       ),
     ],
   );
@@ -333,7 +334,7 @@ class _ControlPointsPanelState extends State<ControlPointsPanel> {
         const SizedBox(width: 8),
         Expanded(
           child: Text(
-            'Control Points'.toUpperCase(),
+            tr('Control Points').toUpperCase(),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.labelMedium?.copyWith(
@@ -346,16 +347,16 @@ class _ControlPointsPanelState extends State<ControlPointsPanel> {
         FilledButton.tonalIcon(
           onPressed: () => _add(red: true),
           icon: const Icon(Icons.add, color: _red, size: 18),
-          label: const Text('Timing'),
+          label: Text(tr('Timing')),
         ),
         const SizedBox(width: 6),
         FilledButton.tonalIcon(
           onPressed: c.timing.redPoints.isEmpty ? null : () => _add(red: false),
           icon: const Icon(Icons.add, color: _green, size: 18),
-          label: const Text('Inherited'),
+          label: Text(tr('Inherited')),
         ),
         if (widget.onClose != null)
-          IconButton(tooltip: 'Close', onPressed: widget.onClose, icon: const Icon(Icons.close, size: 20)),
+          IconButton(tooltip: tr('Close'), onPressed: widget.onClose, icon: const Icon(Icons.close, size: 20)),
       ],
     );
   }
@@ -396,7 +397,7 @@ double? _parseVolume(String s) {
   return v != null && v >= 5 && v <= 100 ? v.toDouble() : null;
 }
 
-String _sampleSetName(int s) => s == SampleSet.auto ? 'Auto' : SampleSet.name(s);
+String _sampleSetName(int s) => s == SampleSet.auto ? tr('Auto') : tr(SampleSet.name(s));
 
 const _sampleSets = [SampleSet.auto, SampleSet.normal, SampleSet.soft, SampleSet.drum];
 
@@ -483,19 +484,19 @@ Widget _sampleRow({
 }) =>
     Row(
       children: [
-        const Expanded(child: Text('Sample set')),
+        Expanded(child: Text(tr('Sample set'))),
         SetupChoicePill<int>(
           value: sampleSet,
           choices: _sampleSets,
           name: _sampleSetName,
-          tooltip: 'Sample set',
+          tooltip: tr('Sample set'),
           onPick: onSet,
         ),
         const SizedBox(width: 8),
         SizedBox(
           width: 72,
           child: CommitTextField(
-            label: 'Custom',
+            label: tr('Custom'),
             value: index,
             keyboardType: TextInputType.number,
             onCommit: (s) {
@@ -538,17 +539,17 @@ class _PointEditor extends StatelessWidget {
       children: [
         SetupSection(
           marker: p.uninherited ? _red : _green,
-          title: p.uninherited ? 'Timing point' : 'Inherited point',
+          title: p.uninherited ? tr('Timing point') : tr('Inherited point'),
           subtitle: formatEditorTime(p.time),
           trailing: [
-            IconButton(tooltip: 'Delete point', onPressed: onDelete, icon: const Icon(Icons.delete_outline, size: 20)),
+            IconButton(tooltip: tr('Delete point'), onPressed: onDelete, icon: const Icon(Icons.delete_outline, size: 20)),
           ],
           children: [
             Row(
               children: [
                 Expanded(
                   child: CommitTextField(
-                    label: 'Offset',
+                    label: tr('Offset'),
                     suffix: 'ms',
                     value: formatNumber(p.time),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
@@ -563,7 +564,7 @@ class _PointEditor extends StatelessWidget {
                 const SizedBox(width: 6),
                 TextButton(
                   onPressed: () => onChanged(p.copyWith(time: currentTime())),
-                  child: const Text('Use current'),
+                  child: Text(tr('Use current')),
                 ),
               ],
             ),
@@ -589,14 +590,14 @@ class _PointEditor extends StatelessWidget {
                     value: p.meter,
                     choices: [..._meters, if (!_meters.contains(p.meter)) p.meter],
                     name: (m) => '$m/4',
-                    tooltip: 'Meter',
+                    tooltip: tr('Meter'),
                     onPick: (m) => onChanged(p.copyWith(meter: m)),
                   ),
                 ],
               ),
               gap,
               SetupRow(
-                label: 'Omit first bar line',
+                label: tr('Omit first bar line'),
                 trailing: Switch(
                   value: omit,
                   onChanged: (v) => onChanged(_withEffect(TimingEffects.omitFirstBarLine, v)),
@@ -605,7 +606,7 @@ class _PointEditor extends StatelessWidget {
               ),
             ] else
               CommitSlider(
-                label: 'Slider velocity',
+                label: tr('Slider velocity'),
                 value: p.sliderVelocity,
                 min: 0.1,
                 max: 4,
@@ -620,7 +621,7 @@ class _PointEditor extends StatelessWidget {
         ),
         SetupSection(
           icon: Icons.music_note_outlined,
-          title: 'Sounds & kiai',
+          title: tr('Sounds & kiai'),
           children: [
             _sampleRow(
               sampleSet: p.sampleSet.clamp(0, 3),
@@ -633,7 +634,7 @@ class _PointEditor extends StatelessWidget {
             ),
             gap,
             CommitSlider(
-              label: 'Volume',
+              label: tr('Volume'),
               value: p.volume.toDouble(),
               min: 5,
               max: 100,
@@ -645,7 +646,7 @@ class _PointEditor extends StatelessWidget {
               onCommit: (v) => onChanged(p.copyWith(volume: v.round())),
             ),
             SetupRow(
-              label: 'Kiai time',
+              label: tr('Kiai time'),
               trailing: Switch(value: p.kiai, onChanged: (v) => onChanged(_withEffect(TimingEffects.kiai, v))),
               onTap: () => onChanged(_withEffect(TimingEffects.kiai, !p.kiai)),
             ),
@@ -690,11 +691,11 @@ class _MultiEditor extends StatelessWidget {
       children: [
         SetupSection(
           icon: Icons.checklist,
-          title: '${points.length} points selected',
+          title: tr('{n} points selected', {'n': points.length}),
           trailing: [
-            IconButton(tooltip: 'Clear selection', onPressed: onClear, icon: const Icon(Icons.close, size: 20)),
+            IconButton(tooltip: tr('Clear selection'), onPressed: onClear, icon: const Icon(Icons.close, size: 20)),
             IconButton(
-              tooltip: 'Delete ${points.length} points',
+              tooltip: tr('Delete {n} points', {'n': points.length}),
               onPressed: onDelete,
               icon: const Icon(Icons.delete_outline, size: 20),
             ),
@@ -711,7 +712,7 @@ class _MultiEditor extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             CommitSlider(
-              label: volume == null ? 'Volume (mixed)' : 'Volume',
+              label: volume == null ? tr('Volume (mixed)') : tr('Volume'),
               value: (volume ?? points.first.volume).toDouble(),
               min: 5,
               max: 100,
@@ -723,8 +724,8 @@ class _MultiEditor extends StatelessWidget {
               onCommit: (v) => onChanged((p) => p.copyWith(volume: v.round())),
             ),
             SetupRow(
-              label: 'Kiai time',
-              subtitle: kiai == null ? 'Mixed' : null,
+              label: tr('Kiai time'),
+              subtitle: kiai == null ? tr('Mixed') : null,
               trailing: Switch(value: kiai == true, onChanged: (_) => toggleKiai()),
               onTap: toggleKiai,
             ),

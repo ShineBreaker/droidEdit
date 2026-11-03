@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/strings.dart';
 import '../platform/app_updater.dart';
 
 /// A small "TEST BUILD" tag, shown only in the development app
@@ -32,9 +33,9 @@ class _DevBadgeState extends State<DevBadge> {
           color: const Color(0xCCB3261E),
           borderRadius: BorderRadius.circular(3),
         ),
-        child: const Text(
-          'TEST BUILD',
-          style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.5),
+        child: Text(
+          tr('TEST BUILD'),
+          style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.5),
         ),
       ),
     );

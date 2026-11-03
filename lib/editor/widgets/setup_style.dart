@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/strings.dart';
 import 'form_fields.dart';
 
 /// The look shared by the Song setup, Timing and Control Points panels:
@@ -179,7 +180,7 @@ class SetupChoicePill<T> extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(v == null ? mixed : name(v)),
+            Text(v == null ? tr(mixed) : name(v)),
             const SizedBox(width: 2),
             Icon(Icons.arrow_drop_down, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ],

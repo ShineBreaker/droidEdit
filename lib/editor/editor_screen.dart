@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import '../l10n/language_dialog.dart';
+import '../l10n/strings.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -205,9 +207,9 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
     c.pause();
     if (!playing && reason != AudioInterruption.outputFailed) return;
     _audioNote(switch (reason) {
-      AudioInterruption.focusLoss => 'Paused: another app or a call took the audio',
-      AudioInterruption.noisy => 'Paused: headphones disconnected',
-      AudioInterruption.outputFailed => 'Audio output unavailable; playback paused',
+      AudioInterruption.focusLoss => tr('Paused: another app or a call took the audio'),
+      AudioInterruption.noisy => tr('Paused: headphones disconnected'),
+      AudioInterruption.outputFailed => tr('Audio output unavailable; playback paused'),
     });
   }
 
@@ -232,9 +234,9 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
   Future<void> _save() async {
     try {
       final ok = await c.save();
-      if (ok) AppToast.show('Saved ${c.document.fileName}');
+      if (ok) AppToast.show(tr('Saved {file}', {'file': c.document.fileName}));
     } catch (e) {
-      AppToast.show('Save failed: $e');
+      AppToast.show(tr('Save failed: {e}', {'e': e}));
     }
   }
 
@@ -244,7 +246,7 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
     final others = await c.otherDifficulties();
     if (!mounted) return;
     if (others.isEmpty) {
-      AppToast.show('No other difficulties in this set');
+      AppToast.show(tr('No other difficulties in this set'));
       return;
     }
     final choice = await showDialog<_HitsoundCopyChoice>(
@@ -262,9 +264,9 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
     final n = previous.length;
     AppToast.show(
       n == 0
-          ? 'The chosen difficulties already sound like this one'
-          : 'Copied hitsounds to $n difficult${n == 1 ? 'y' : 'ies'}',
-      actionLabel: n == 0 ? null : 'Undo',
+          ? tr('The chosen difficulties already sound like this one')
+          : tr('Copied hitsounds to {n} difficulties', {'n': n}),
+      actionLabel: n == 0 ? null : tr('Undo'),
       onAction: n == 0 ? null : () => c.restoreDifficulties(previous),
       duration: const Duration(seconds: 8),
     );
@@ -277,9 +279,10 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
     if (dir == null) return;
     final result = await MapFolder.open(dir);
     final text = switch (result) {
-      MapFolderResult.opened => c.isDirty ? 'Unsaved changes are not in the folder until you save' : null,
-      MapFolderResult.openedLibraryRoot => 'Opened the osuEdit library in Files: the map is in "${dir.split(RegExp(r'[\\/]')).last}"',
-      MapFolderResult.failed => 'Could not open the folder (no file manager found)',
+      MapFolderResult.opened => c.isDirty ? tr('Unsaved changes are not in the folder until you save') : null,
+      MapFolderResult.openedLibraryRoot =>
+        tr('Opened the osuEdit library in Files: the map is in "{dir}"', {'dir': dir.split(RegExp(r'[\\/]')).last}),
+      MapFolderResult.failed => tr('Could not open the folder (no file manager found)'),
     };
     if (text != null) AppToast.show(text);
   }
@@ -287,9 +290,9 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
   Future<void> _exportOsz() async {
     try {
       final ok = await c.exportOsz();
-      if (ok) AppToast.show('Exported .osz');
+      if (ok) AppToast.show(tr('Exported .osz'));
     } catch (e) {
-      AppToast.show('Export failed: $e');
+      AppToast.show(tr('Export failed: {e}', {'e': e}));
     }
   }
 
@@ -312,19 +315,19 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
     }
   }
 
-  Future<void> _setAudio() => _setFile(c.files.pickAudioFile, c.importAudioFile, 'Audio file set');
-  Future<void> _setBackground() => _setFile(c.files.pickImageFile, c.importBackgroundFile, 'Background set');
+  Future<void> _setAudio() => _setFile(c.files.pickAudioFile, c.importAudioFile, tr('Audio file set'));
+  Future<void> _setBackground() => _setFile(c.files.pickImageFile, c.importBackgroundFile, tr('Background set'));
 
   Future<bool> _confirmDiscard() async {
     if (!c.isDirty) return true;
     final r = await showDialog<bool>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: const Text('Unsaved changes'),
-        content: const Text('Discard changes and close the editor?'),
+        title: Text(tr('Unsaved changes')),
+        content: Text(tr('Discard changes and close the editor?')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Discard')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Cancel'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('Discard'))),
         ],
       ),
     );
@@ -349,7 +352,7 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
       builder: (_) => _TextPromptDialog(
         title: copy ? 'Duplicate difficulty' : 'New difficulty',
         label: 'Difficulty name',
-        initial: copy ? '${c.beatmap.version} (copy)' : '',
+        initial: copy ? tr('{version} (copy)', {'version': c.beatmap.version}) : '',
         action: 'Create',
       ),
     );
@@ -358,18 +361,18 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
     try {
       path = await c.createDifficulty(name, copyObjects: copy);
     } catch (e) {
-      AppToast.show('Could not create difficulty: $e');
+      AppToast.show(tr('Could not create difficulty: {e}', {'e': e}));
       return;
     }
     if (path == null || !mounted) return;
     final open = await showDialog<bool>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: Text('Created "$name"'),
-        content: Text(c.isDirty ? 'Open it now? Your changes here will be saved first.' : 'Open it now?'),
+        title: Text(tr('Created "{name}"', {'name': name})),
+        content: Text(c.isDirty ? tr('Open it now? Your changes here will be saved first.') : tr('Open it now?')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Stay here')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Open')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Stay here'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('Open'))),
         ],
       ),
     );
@@ -425,7 +428,7 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
       context: context,
       builder: (_) => _TextPromptDialog(
         title: 'Go to timestamp',
-        label: 'e.g. 00:01:234 (1,2,3) -',
+        label: tr('e.g. 00:01:234 (1,2,3) -'),
         initial: initial,
         action: 'Go',
       ),
@@ -433,12 +436,12 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
     if (text == null) return;
     final ts = EditorTimestamp.parse(text);
     if (ts == null) {
-      AppToast.show('No timestamp found (mm:ss:mmm)');
+      AppToast.show(tr('No timestamp found (mm:ss:mmm)'));
       return;
     }
     final n = c.goToTimestamp(ts);
     if (n < ts.combos.length) {
-      AppToast.show('Selected $n of ${ts.combos.length} objects');
+      AppToast.show(tr('Selected {n} of {total} objects', {'n': n, 'total': ts.combos.length}));
     }
   }
 
@@ -501,8 +504,8 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
     final n = samples ? c.resetSamples() : c.resetComboColours();
     final what = samples ? 'samples' : 'combo colour skips';
     final text = n == 0
-        ? 'No $what to reset${all ? '' : ' in the selection'}'
-        : 'Reset $what on $n object${n == 1 ? '' : 's'}';
+        ? tr('No {what} to reset{inSel}', {'what': tr(what), 'inSel': all ? '' : tr(' in the selection')})
+        : tr('Reset {what} on {n} objects', {'what': tr(what), 'n': n});
     AppToast.show(text);
   }
 
@@ -511,8 +514,8 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
     final all = c.selection.isEmpty;
     final n = c.resnapNotes();
     final text = n == 0
-        ? 'Every ${all ? 'note' : 'selected note'} is already on 1/${c.divisor}'
-        : 'Resnapped $n object${n == 1 ? '' : 's'} to 1/${c.divisor}';
+        ? tr(all ? 'Every note is already on 1/{d}' : 'Every selected note is already on 1/{d}', {'d': c.divisor})
+        : tr('Resnapped {n} objects to 1/{d}', {'n': n, 'd': c.divisor});
     AppToast.show(text);
   }
 
@@ -522,7 +525,9 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
     final ms = await showDialog<int>(context: context, builder: (_) => _MoveNotesDialog(all: all));
     if (ms == null || !mounted) return;
     final n = c.moveNotesInTime(ms.toDouble());
-    final text = n == 0 ? 'Nothing to move' : 'Moved $n object${n == 1 ? '' : 's'} by ${ms > 0 ? '+' : ''}$ms ms';
+    final text = n == 0
+        ? tr('Nothing to move')
+        : tr('Moved {n} objects by {ms} ms', {'n': n, 'ms': '${ms > 0 ? '+' : ''}$ms'});
     AppToast.show(text);
   }
 
@@ -536,28 +541,28 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
     final path = c.document.path;
     final reopen = !inHistory && c.document.isInLibrary && path != null;
     if (!inHistory && !reopen) {
-      AppToast.show('The saved version is no longer in the undo history.');
+      AppToast.show(tr('The saved version is no longer in the undo history.'));
       return;
     }
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: const Text('Revert to saved?'),
+        title: Text(tr('Revert to saved?')),
         content: Text(
           inHistory
-              ? 'All changes since the last save are undone. Redo brings them back.'
-              : "All changes since the last save are discarded and the file is reopened. This can't be undone.",
+              ? tr('All changes since the last save are undone. Redo brings them back.')
+              : tr("All changes since the last save are discarded and the file is reopened. This can't be undone."),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Revert')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Cancel'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('Revert'))),
         ],
       ),
     );
     if (ok != true || !mounted) return;
     if (inHistory) {
       c.revertToSaved();
-      AppToast.show('Reverted to the saved version');
+      AppToast.show(tr('Reverted to the saved version'));
     } else {
       await c.discardAutosave();
       navigator.pop(path); // the library screen reopens it from disk
@@ -571,20 +576,20 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
     final count = await c.setDifficultyCount();
     if (!mounted) return;
     if (count < 2) {
-      AppToast.show('This is the only difficulty of the set; delete the set from the library instead.');
+      AppToast.show(tr('This is the only difficulty of the set; delete the set from the library instead.'));
       return;
     }
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: Text('Delete "${c.beatmap.version}"?'),
+        title: Text(tr('Delete "{version}"?', {'version': c.beatmap.version})),
         content: Text("The file ${c.document.fileName} is deleted from the set. This can't be undone."),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Cancel'))),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Theme.of(ctx).colorScheme.error),
-            child: const Text('Delete'),
+            child: Text(tr('Delete')),
           ),
         ],
       ),
@@ -593,11 +598,11 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
     try {
       if (!await c.deleteThisDifficulty()) return;
     } catch (e) {
-      AppToast.show('Could not delete: $e');
+      AppToast.show(tr('Could not delete: {e}', {'e': e}));
       return;
     }
     await c.discardAutosave();
-    AppToast.show('Deleted ${c.document.fileName}');
+    AppToast.show(tr('Deleted {file}', {'file': c.document.fileName}));
     navigator.pop();
   }
 
@@ -642,7 +647,7 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
               children: [
                 Row(
                   children: [
-                    const Text('Background dim'),
+                    Text(tr('Background dim')),
                     Expanded(
                       child: Slider(
                         value: c.backgroundDim,
@@ -654,17 +659,17 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
                   ],
                 ),
                 _displaySwitch(
-                    c.hasAudio ? 'Timeline waveform (Timing, Hitsounds)' : 'Timeline waveform (no audio)', c.showWaveform,
+                    c.hasAudio ? tr('Timeline waveform (Timing, Hitsounds)') : tr('Timeline waveform (no audio)'), c.showWaveform,
                     (v) => c.showWaveform = v),
-                _displaySwitch(c.hasStoryboard ? 'Storyboard' : 'Storyboard (none)', c.showStoryboard,
+                _displaySwitch(c.hasStoryboard ? 'Storyboard' : tr('Storyboard (none)'), c.showStoryboard,
                     (v) => c.showStoryboard = v),
                 _displaySwitch('Follow points', c.showFollowPoints, (v) => c.showFollowPoints = v),
                 _displaySwitch('Stacking', c.showStacking, (v) => c.showStacking = v),
                 _displaySwitch('Hit animations', c.hitAnimations, (v) => c.hitAnimations = v),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Skin', style: TextStyle(fontSize: 15)),
-                  subtitle: Text(c.skin?.info.name ?? 'Default', maxLines: 1, overflow: TextOverflow.ellipsis),
+                  title: Text(tr('Skin'), style: const TextStyle(fontSize: 15)),
+                  subtitle: Text(c.skin?.info.name ?? tr('Default'), maxLines: 1, overflow: TextOverflow.ellipsis),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => showSkinPicker(context, files: c.files),
                 ),
@@ -673,13 +678,13 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
           ),
         ),
       ),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Done'))],
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Done')))],
     ),
   );
 
   static Widget _displaySwitch(String title, bool value, ValueChanged<bool> onChanged) => SwitchListTile(
     contentPadding: EdgeInsets.zero,
-    title: Text(title, style: const TextStyle(fontSize: 15)),
+    title: Text(tr(title), style: const TextStyle(fontSize: 15)),
     value: value,
     onChanged: onChanged,
   );
@@ -926,6 +931,7 @@ class _EditorScreenState extends State<EditorScreen> with SingleTickerProviderSt
                           'resetcolours' => _reset(samples: false),
                           'resnap' => _resnap(),
                           'movetime' => _moveNotesInTime(),
+                          'language' => pickUiLanguage(context),
                           'revert' => _revert(),
                           _ => _close(),
                         },
@@ -1063,19 +1069,19 @@ class _TopBar extends StatelessWidget {
               ),
             ),
             IconButton(
-              tooltip: 'Undo',
+              tooltip: tr('Undo'),
               visualDensity: dense,
               onPressed: c.canUndo ? c.undo : null,
               icon: const Icon(Icons.undo),
             ),
             IconButton(
-              tooltip: 'Redo',
+              tooltip: tr('Redo'),
               visualDensity: dense,
               onPressed: c.canRedo ? c.redo : null,
               icon: const Icon(Icons.redo),
             ),
             IconButton(
-              tooltip: c.isDirty ? 'Save (unsaved changes)' : 'Save',
+              tooltip: c.isDirty ? tr('Save (unsaved changes)') : tr('Save'),
               visualDensity: dense,
               onPressed: onSave,
               icon: Badge(isLabelVisible: c.isDirty, smallSize: 8, child: const Icon(Icons.save)),
@@ -1112,19 +1118,22 @@ class _EditorMenu extends StatelessWidget {
     final c = controller;
     Widget item(String value, String label, {bool enabled = true}) => MenuItemButton(
           onPressed: enabled ? () => onMenu(value) : null,
-          child: Text(label),
+          child: Text(tr(label)),
         );
     Widget group(String label, IconData icon, List<Widget> items) => SubmenuButton(
           leadingIcon: Icon(icon, size: 20),
           menuChildren: items,
-          child: Text(label),
+          child: Text(tr(label)),
         );
     return MenuAnchor(
       controller: menu,
       menuChildren: [
         group('Edit', Icons.edit_note, [
           item('selectall', 'Select all'),
-          item('paste', c.clipboardCount > 0 ? 'Paste ${c.clipboardCount} at current time' : 'Paste',
+          item('paste',
+              c.clipboardCount > 0
+                  ? tr('Paste {n} at current time', {'n': c.clipboardCount})
+                  : 'Paste',
               enabled: c.clipboardCount > 0),
           const Divider(height: 1),
           // stable's pattern / reset tools: on the selection, or the whole
@@ -1145,13 +1154,16 @@ class _EditorMenu extends StatelessWidget {
                 MenuItemButton(
                   leadingIcon: Icon(c.defaultSliderType == type ? Icons.check : null, size: 20),
                   onPressed: () => c.defaultSliderType = type,
-                  child: Text(label),
+                  child: Text(tr(label)),
                 ),
             ],
-            child: const Text('New slider type'),
+            child: Text(tr('New slider type')),
           ),
           const Divider(height: 1),
-          item('resnap', c.selection.isEmpty ? 'Resnap all notes (1/${c.divisor})' : 'Resnap selection (1/${c.divisor})'),
+          item(
+              'resnap',
+              tr(c.selection.isEmpty ? 'Resnap all notes (1/{d})' : 'Resnap selection (1/{d})',
+                  {'d': c.divisor})),
           item('movetime', c.selection.isEmpty ? 'Move all notes in time…' : 'Move selection in time…'),
         ]),
         group('Bookmarks', Icons.bookmark_border, [
@@ -1175,16 +1187,17 @@ class _EditorMenu extends StatelessWidget {
         group('Settings', Icons.tune, [
           item('audiosettings', c.hasAudio ? 'Audio settings…' : 'Audio settings… (no audio)'),
           item('display', 'Display…'),
+          item('language', 'Language…'),
         ]),
         const Divider(height: 1),
         MenuItemButton(
           leadingIcon: const Icon(Icons.close, size: 20),
           onPressed: () => onMenu('close'),
-          child: const Text('Close editor'),
+          child: Text(tr('Close editor')),
         ),
       ],
       builder: (context, menu, _) => IconButton(
-        tooltip: 'Menu',
+        tooltip: tr('Menu'),
         onPressed: () => menu.isOpen ? menu.close() : menu.open(),
         icon: const Icon(Icons.more_vert),
       ),
@@ -1212,7 +1225,7 @@ class _BottomBar extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Tooltip(
-          message: 'Go to time',
+          message: tr('Go to time'),
           child: InkWell(
             onTap: onTime,
             borderRadius: BorderRadius.circular(8),
@@ -1224,7 +1237,7 @@ class _BottomBar extends StatelessWidget {
           ),
         ),
         IconButton(
-          tooltip: expanded ? 'Hide map overview' : 'Show map overview',
+          tooltip: expanded ? tr('Hide map overview') : tr('Show map overview'),
           visualDensity: VisualDensity.compact,
           onPressed: () => c.showMiniTimeline = !expanded,
           icon: Icon(expanded ? Icons.expand_more : Icons.expand_less),
@@ -1237,7 +1250,7 @@ class _BottomBar extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          tooltip: c.isPlaying ? 'Pause (Space)' : 'Play (Space)',
+          tooltip: c.isPlaying ? tr('Pause (Space)') : tr('Play (Space)'),
           onPressed: c.togglePlay,
           iconSize: 32,
           style: IconButton.styleFrom(
@@ -1259,7 +1272,7 @@ class _BottomBar extends StatelessWidget {
         SizedBox(
           width: toolboxWidth,
           child: Tooltip(
-            message: 'Playback rate',
+            message: tr('Playback rate'),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<double>(
                 value: c.rate,
@@ -1418,9 +1431,9 @@ class _ContextOverlay extends StatelessWidget {
           padding: EdgeInsets.fromLTRB(6, 6, 6, 6),
           child: Text('New slider'),
         ),
-        FilledButton(style: dense, onPressed: n >= 2 ? c.finishSlider : null, child: const Text('Create')),
+        FilledButton(style: dense, onPressed: n >= 2 ? c.finishSlider : null, child: Text(tr('Create'))),
         const SizedBox(height: 4),
-        OutlinedButton(style: dense, onPressed: c.cancelSlider, child: const Text('Cancel')),
+        OutlinedButton(style: dense, onPressed: c.cancelSlider, child: Text(tr('Cancel'))),
       ],
     );
   }
@@ -1432,17 +1445,17 @@ class _ContextOverlay extends StatelessWidget {
   static Widget _selectionLabel(EditorController c) {
     final s = c.editedSlider, edge = c.selectedEdge;
     if (s == null || edge == null) {
-      return Text('${c.selection.length} selected', maxLines: 1, style: const TextStyle(fontSize: 12));
+      return Text(tr('{n} selected', {'n': c.selection.length}), maxLines: 1, style: const TextStyle(fontSize: 12));
     }
     return Text(
-      'Slider ${EditorController.edgeName(s, edge).toLowerCase()}',
+      tr('Slider {edge}', {'edge': EditorController.edgeName(s, edge).toLowerCase()}),
       maxLines: 1,
       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: TimelinePainter.edgeColour),
     );
   }
 
   Widget _selectionLeft(EditorController c) {
-    final pivotNote = c.pivot == TransformPivot.playfield ? ' · playfield centre' : ' · selection centre';
+    final pivotNote = c.pivot == TransformPivot.playfield ? tr(' · playfield centre') : tr(' · selection centre');
     final selected = c.selection.isNotEmpty;
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -1456,22 +1469,22 @@ class _ContextOverlay extends StatelessWidget {
             ),
           ),
           _ActionButton(
-            tooltip: 'Delete (Del)',
+            tooltip: tr('Delete (Del)'),
             label: 'Delete',
             icon: const Icon(Icons.delete_outline),
             onPressed: c.deleteSelection,
           ),
           _ActionButton(
-            tooltip: 'Copy (Ctrl+C)',
+            tooltip: tr('Copy (Ctrl+C)'),
             label: 'Copy',
             icon: const Icon(Icons.content_copy),
             onPressed: onCopy,
           ),
-          _ActionButton(tooltip: 'Cut (Ctrl+X)', label: 'Cut', icon: const Icon(Icons.content_cut), onPressed: onCut),
+          _ActionButton(tooltip: tr('Cut (Ctrl+X)'), label: 'Cut', icon: const Icon(Icons.content_cut), onPressed: onCut),
         ],
         if (c.clipboardCount > 0)
           _ActionButton(
-            tooltip: 'Paste ${c.clipboardCount} at current time (Ctrl+V)',
+            tooltip: tr('Paste {n} at current time (Ctrl+V)', {'n': c.clipboardCount}),
             label: 'Paste',
             icon: const Icon(Icons.content_paste),
             onPressed: c.paste,
@@ -1493,7 +1506,7 @@ class _ContextOverlay extends StatelessWidget {
               ),
             ],
             builder: (context, menu, _) => _ActionButton(
-              tooltip: 'Flip…$pivotNote',
+              tooltip: tr('Flip…{note}', {'note': pivotNote}),
               label: 'Flip',
               icon: const Icon(Icons.flip),
               onPressed: () => menu.isOpen ? menu.close() : menu.open(),
@@ -1511,39 +1524,39 @@ class _ContextOverlay extends StatelessWidget {
       children: [
         // 90° turns are in the Rotate panel (and Ctrl+< / Ctrl+>).
         _ActionButton(
-          tooltip: 'Rotate… (Ctrl+Shift+R)',
+          tooltip: tr('Rotate… (Ctrl+Shift+R)'),
           label: 'Rotate',
           icon: const Icon(Icons.rotate_right),
           onPressed: onRotate,
         ),
         _ActionButton(
-          tooltip: 'Scale… (Ctrl+Shift+S)',
+          tooltip: tr('Scale… (Ctrl+Shift+S)'),
           label: 'Scale',
           icon: const Icon(Icons.open_in_full),
           onPressed: onScale,
         ),
         _ActionButton(
-          tooltip: 'Nudge in time / position…',
+          tooltip: tr('Nudge in time / position…'),
           label: 'Nudge',
           icon: const Icon(Icons.open_with),
           onPressed: onNudge,
         ),
         _ActionButton(
-          tooltip: 'Reverse in time (Ctrl+G)',
+          tooltip: tr('Reverse in time (Ctrl+G)'),
           label: 'Reverse',
           icon: const Icon(Icons.swap_horiz),
           onPressed: c.reverseSelection,
         ),
         if (c.canConvertToStream)
           _ActionButton(
-            tooltip: 'Convert sliders to a stream at the beat snap (Ctrl+Shift+F)',
+            tooltip: tr('Convert sliders to a stream at the beat snap (Ctrl+Shift+F)'),
             label: 'Convert',
             icon: const Icon(Icons.more_horiz),
             onPressed: c.convertSelectionToStream,
           ),
         if (c.canMergeSelection)
           _ActionButton(
-            tooltip: 'Merge into one slider (Ctrl+Shift+M)',
+            tooltip: tr('Merge into one slider (Ctrl+Shift+M)'),
             label: 'Merge',
             icon: const Icon(Icons.timeline),
             onPressed: c.mergeSelection,
@@ -1578,7 +1591,7 @@ class _ActionButton extends StatelessWidget {
               const SizedBox(height: 2),
               FittedBox(
                 fit: BoxFit.scaleDown,
-                child: Text(label, maxLines: 1, style: const TextStyle(fontSize: 10.5)),
+                child: Text(tr(label), maxLines: 1, style: const TextStyle(fontSize: 10.5)),
               ),
             ],
           ),
@@ -1616,17 +1629,17 @@ class _TextPromptDialogState extends State<_TextPromptDialog> {
 
   @override
   Widget build(BuildContext context) => AppDialog(
-    title: Text(widget.title),
+    title: Text(tr(widget.title)),
     content: TextField(
       controller: _name,
       autofocus: true,
-      decoration: InputDecoration(labelText: widget.label),
+      decoration: InputDecoration(labelText: tr(widget.label)),
       onChanged: (_) => setState(() {}),
       onSubmitted: (_) => _submit(),
     ),
     actions: [
-      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-      TextButton(onPressed: _name.text.trim().isEmpty ? null : _submit, child: Text(widget.action)),
+      TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Cancel'))),
+      TextButton(onPressed: _name.text.trim().isEmpty ? null : _submit, child: Text(tr(widget.action))),
     ],
   );
 }
@@ -1634,10 +1647,13 @@ class _TextPromptDialogState extends State<_TextPromptDialog> {
 /// What the device latency measurement found and adds to the offset.
 String _latencyNote(EditorController c) {
   final measured = AudioSession.instance.deviceLatency.value;
-  if (measured == null) return 'Not measured on this device';
+  if (measured == null) return tr('Not measured on this device');
   final add = AudioSession.instance.latencyCorrection.round();
-  return 'Output latency ${measured.round()} ms '
-      '(reference ${AudioSession.referenceLatencyMs.round()} ms): ${add >= 0 ? '+' : ''}$add ms';
+  return tr('Output latency {a} ms (reference {b} ms): {c} ms', {
+    'a': measured.round(),
+    'b': AudioSession.referenceLatencyMs.round(),
+    'c': '${add >= 0 ? '+' : ''}$add',
+  });
 }
 
 class _AudioSettingsSheet extends StatelessWidget {
@@ -1659,15 +1675,15 @@ class _AudioSettingsSheet extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Audio', style: Theme.of(context).textTheme.titleMedium),
+                Text(tr('Audio'), style: Theme.of(context).textTheme.titleMedium),
                 if (!c.hasAudio)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(
                       c.audioError ??
                           (c.canChangeSetFiles
-                              ? 'This map has no audio yet.'
-                              : 'This map has no loaded audio (open it from the library with its audio file).'),
+                              ? tr('This map has no audio yet.')
+                              : tr('This map has no loaded audio (open it from the library with its audio file).')),
                     ),
                   ),
                 if (c.canChangeSetFiles)
@@ -1679,11 +1695,11 @@ class _AudioSettingsSheet extends StatelessWidget {
                         onSetAudio();
                       },
                       icon: const Icon(Icons.audio_file_outlined),
-                      label: Text(c.hasAudio ? 'Change audio file…' : 'Choose audio file…'),
+                      label: Text(c.hasAudio ? tr('Change audio file…') : tr('Choose audio file…')),
                     ),
                   ),
                 const SizedBox(height: 8),
-                Text('Offset: ${a.offsetMs.round()} ms (positive = audio is heard late)'),
+                Text(tr('Offset: {ms} ms (positive = audio is heard late)', {'ms': a.offsetMs.round()})),
                 Slider(
                   value: a.offsetMs.clamp(-200, 200),
                   min: -200,
@@ -1692,14 +1708,14 @@ class _AudioSettingsSheet extends StatelessWidget {
                   label: '${a.offsetMs.round()} ms',
                   onChanged: (v) => c.updateAudioSettings(offsetMs: v),
                 ),
-                Text('Music volume: ${(a.musicVolume * 100).round()}%'),
+                Text(tr('Music volume: {p}%', {'p': (a.musicVolume * 100).round()})),
                 Slider(
                   value: a.musicVolume,
                   onChanged: (v) => c.updateAudioSettings(musicVolume: v),
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Hitsounds'),
+                  title: Text(tr('Hitsounds')),
                   value: a.hitsoundsEnabled,
                   onChanged: (v) => c.updateAudioSettings(hitsoundsEnabled: v),
                 ),
@@ -1708,7 +1724,7 @@ class _AudioSettingsSheet extends StatelessWidget {
                   onChanged: a.hitsoundsEnabled ? (v) => c.updateAudioSettings(hitsoundVolume: v) : null,
                 ),
                 ExpansionTile(
-                  title: const Text('Advanced'),
+                  title: Text(tr('Advanced')),
                   tilePadding: EdgeInsets.zero,
                   childrenPadding: EdgeInsets.zero,
                   shape: const Border(),
@@ -1718,16 +1734,18 @@ class _AudioSettingsSheet extends StatelessWidget {
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
                       dense: true,
-                      title: const Text('Auto-correct device latency'),
+                      title: Text(tr('Auto-correct device latency')),
                       subtitle: Text(_latencyNote(c)),
                       value: a.autoLatency,
                       onChanged: (v) => c.updateAudioSettings(autoLatency: v),
                     ),
                     Text(
-                      'Map timing: ${c.mapAudioOffsetMs.round()} ms (fixed). Notes are timed this much ahead '
-                      'of the song, as in ranked maps (osu!stable latency'
-                      '${c.beatmap.formatVersion < 5 ? ', +${EditorController.earlyVersionTimingOffsetMs.round()} ms '
-                          'for v${c.beatmap.formatVersion} files' : ''}).',
+                      '${tr('Map timing: {ms} ms (fixed).', {'ms': c.mapAudioOffsetMs.round()})} '
+                      '${tr('Notes are timed this much ahead of the song, as in ranked maps (osu!stable latency{extra}).', {
+                        'extra': c.beatmap.formatVersion < 5
+                            ? ', +${EditorController.earlyVersionTimingOffsetMs.round()} ms for v${c.beatmap.formatVersion} files'
+                            : '',
+                      })}',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const SizedBox(height: 8),
@@ -1840,7 +1858,7 @@ class _NudgePanelState extends State<_NudgePanel> {
                         SizedBox.square(
                           dimension: size,
                           child: Tooltip(
-                            message: 'Step: $_step px (tap to change)',
+                            message: tr('Step: {n} px (tap to change)', {'n': _step}),
                             child: InkResponse(
                               radius: size / 2,
                               onTap: () => setState(() => _step = _steps[(_steps.indexOf(_step) + 1) % _steps.length]),
@@ -1912,7 +1930,7 @@ class _PolygonPanelState extends State<_PolygonPanel> {
       height: 36,
       child: Row(
         children: [
-          SizedBox(width: 60, child: Text(label, style: const TextStyle(fontSize: 13))),
+          SizedBox(width: 60, child: Text(tr(label), style: const TextStyle(fontSize: 13))),
           Expanded(child: slider),
           SizedBox(width: 36, child: Text(value, textAlign: TextAlign.end, style: tabular.copyWith(fontSize: 13))),
         ],
@@ -1931,7 +1949,8 @@ class _PolygonPanelState extends State<_PolygonPanel> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Polygon · ${_vertices * _repeats} circles', style: Theme.of(context).textTheme.titleSmall),
+              Text(tr('Polygon · {n} circles', {'n': _vertices * _repeats}),
+                  style: Theme.of(context).textTheme.titleSmall),
               row(
                 'Vertices',
                 '$_vertices',
@@ -1969,10 +1988,10 @@ class _PolygonPanelState extends State<_PolygonPanel> {
               OverflowBar(
                 alignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                  TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('Cancel'))),
                   FilledButton(
                     onPressed: _fits ? () => Navigator.pop(context, true) : null,
-                    child: const Text('Create'),
+                    child: Text(tr('Create')),
                   ),
                 ],
               ),
@@ -2147,7 +2166,7 @@ class _TransformPanelState extends State<_TransformPanel> {
     // number boxes): Enter / focus loss applies it, clamped to the range.
     Widget row(String label, Widget slider, Widget field) => Row(
       children: [
-        SizedBox(width: 52, child: Text(label)),
+        SizedBox(width: 52, child: Text(tr(label))),
         Expanded(child: slider),
         SizedBox(width: 64, child: field),
       ],
@@ -2166,10 +2185,11 @@ class _TransformPanelState extends State<_TransformPanel> {
             children: [
               Row(
                 children: [
-                  Expanded(child: Text(rotate ? 'Rotate' : 'Scale', style: Theme.of(context).textTheme.titleSmall)),
+                  Expanded(
+                      child: Text(rotate ? tr('Rotate') : tr('Scale'), style: Theme.of(context).textTheme.titleSmall)),
                   if (!rotate)
                     IconButton(
-                      tooltip: _linked ? 'Unlock width / height' : 'Lock width / height',
+                      tooltip: _linked ? tr('Unlock width / height') : tr('Lock width / height'),
                       isSelected: _linked,
                       // No taller than the title (the panel fits a phone).
                       style: IconButton.styleFrom(
@@ -2271,7 +2291,7 @@ class _TransformPanelState extends State<_TransformPanel> {
               if (!rotate)
                 // Sliders only move with their heads; nodes and length stay.
                 SwitchListTile(
-                  title: const Text('Keep slider nodes'),
+                  title: Text(tr('Keep slider nodes')),
                   value: c.scaleKeepsSliderShape,
                   dense: true,
                   contentPadding: EdgeInsets.zero,
@@ -2281,14 +2301,14 @@ class _TransformPanelState extends State<_TransformPanel> {
                     _update();
                   },
                 ),
-              const Text('Around (also for flips)'),
+              Text(tr('Around (also for flips)')),
               const SizedBox(height: 4),
               SegmentedButton<TransformPivot>(
                 showSelectedIcon: false,
                 style: const ButtonStyle(visualDensity: VisualDensity.compact),
-                segments: const [
-                  ButtonSegment(value: TransformPivot.selection, label: Text('Selection')),
-                  ButtonSegment(value: TransformPivot.playfield, label: Text('Playfield')),
+                segments: [
+                  ButtonSegment(value: TransformPivot.selection, label: Text(tr('Selection'))),
+                  ButtonSegment(value: TransformPivot.playfield, label: Text(tr('Playfield'))),
                 ],
                 selected: {c.pivot},
                 onSelectionChanged: (s) {
@@ -2299,21 +2319,21 @@ class _TransformPanelState extends State<_TransformPanel> {
               if (!_fits)
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: Text("Doesn't fit the playfield", style: TextStyle(color: scheme.error)),
+                  child: Text(tr("Doesn't fit the playfield"), style: TextStyle(color: scheme.error)),
                 ),
               OverflowBar(
                 alignment: MainAxisAlignment.end,
                 overflowAlignment: OverflowBarAlignment.end,
                 children: [
                   IconButton(
-                    tooltip: 'Reset',
+                    tooltip: tr('Reset'),
                     onPressed: () => _update(degrees: 0, scale: 1, scaleY: 1),
                     icon: const Icon(Icons.restart_alt),
                   ),
-                  TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                  TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('Cancel'))),
                   FilledButton(
                     onPressed: _fits ? () => Navigator.pop(context, true) : null,
-                    child: const Text('Apply'),
+                    child: Text(tr('Apply')),
                   ),
                 ],
               ),
@@ -2384,7 +2404,11 @@ class _HistoryToastState extends State<HistoryToast> {
         ' · ${formatEditorTime(t)}',
       _ => '',
     };
-    return '${s.undo ? 'Undo' : 'Redo'}: ${s.focus.label}$where';
+    return tr('{op}: {label}{where}', {
+      'op': tr(s.undo ? 'Undo' : 'Redo'),
+      'label': trLabel(s.focus.label),
+      'where': where,
+    });
   }
 
   @override
@@ -2456,7 +2480,7 @@ class _MoveNotesDialogState extends State<_MoveNotesDialog> {
   @override
   Widget build(BuildContext context) {
     return AppDialog(
-      title: Text(widget.all ? 'Move all notes in time' : 'Move selection in time'),
+      title: Text(widget.all ? tr('Move all notes in time') : tr('Move selection in time')),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2466,20 +2490,20 @@ class _MoveNotesDialogState extends State<_MoveNotesDialog> {
             autofocus: true,
             keyboardType: const TextInputType.numberWithOptions(signed: true),
             inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^[-+]?\d{0,7}'))],
-            decoration: const InputDecoration(labelText: 'Offset', suffixText: 'ms', hintText: 'e.g. -20 or 15'),
+            decoration: InputDecoration(labelText: tr('Offset'), suffixText: 'ms', hintText: 'e.g. -20 or 15'),
             onChanged: (_) => setState(() {}),
             onSubmitted: (_) => _submit(),
           ),
           const SizedBox(height: 8),
           Text(
-            'Negative moves earlier. Timing points stay; nothing moves before 0.',
+            tr('Negative moves earlier. Timing points stay; nothing moves before 0.'),
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-        FilledButton(onPressed: _value == null ? null : _submit, child: const Text('Move')),
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(tr('Cancel'))),
+        FilledButton(onPressed: _value == null ? null : _submit, child: Text(tr('Move'))),
       ],
     );
   }
@@ -2565,7 +2589,7 @@ class _StarRatingChipState extends State<_StarRatingChip> {
             return Tooltip(
               triggerMode: TooltipTriggerMode.tap,
               showDuration: const Duration(seconds: 4),
-              message: 'Aim ${f(a.aim)} · Speed ${f(a.speed)} · Reading ${f(a.reading)}',
+              message: tr('Aim {a} · Speed {s} · Reading {r}', {'a': f(a.aim), 's': f(a.speed), 'r': f(a.reading)}),
               child: Material(
                 color: scheme.surfaceContainerHigh.withValues(alpha: 0.85),
                 borderRadius: BorderRadius.circular(8),
@@ -2628,7 +2652,7 @@ class _CopyHitsoundsDialogState extends State<_CopyHitsoundsDialog> {
   Widget build(BuildContext context) {
     final small = Theme.of(context).textTheme.bodySmall;
     return AppDialog(
-      title: const Text('Copy hitsounds'),
+      title: Text(tr('Copy hitsounds')),
       content: SizedBox(
         width: 420,
         child: SingleChildScrollView(
@@ -2636,7 +2660,7 @@ class _CopyHitsoundsDialogState extends State<_CopyHitsoundsDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('From this difficulty (as it is now) to:', style: small),
+              Text(tr('From this difficulty (as it is now) to:'), style: small),
               for (final d in widget.difficulties)
                 CheckboxListTile(
                   dense: true,
@@ -2649,37 +2673,37 @@ class _CopyHitsoundsDialogState extends State<_CopyHitsoundsDialog> {
               SwitchListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Sample sets and volumes'),
-                subtitle: const Text('Timing points take this difficulty\'s sample set, index and volume'),
+                title: Text(tr('Sample sets and volumes')),
+                subtitle: Text(tr("Timing points take this difficulty's sample set, index and volume")),
                 value: _samplePoints,
                 onChanged: (v) => setState(() => _samplePoints = v),
               ),
               SwitchListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Clear unmatched'),
-                subtitle: const Text('Remove hitsounds where this difficulty has no object'),
+                title: Text(tr('Clear unmatched')),
+                subtitle: Text(tr('Remove hitsounds where this difficulty has no object')),
                 value: _clearUnmatched,
                 onChanged: (v) => setState(() => _clearUnmatched = v),
               ),
               TextField(
                 controller: _leniency,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  labelText: 'Leniency',
+                decoration: InputDecoration(
+                  labelText: tr('Leniency'),
                   suffixText: 'ms',
-                  helperText: 'Objects this close in time count as the same moment',
+                  helperText: tr('Objects this close in time count as the same moment'),
                 ),
                 onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 8),
-              Text('The other files are changed on disk; Undo is offered right after.', style: small),
+              Text(tr('The other files are changed on disk; Undo is offered right after.'), style: small),
             ],
           ),
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(tr('Cancel'))),
         FilledButton(
           onPressed: _chosen.isEmpty || _leniencyMs == null
               ? null
@@ -2689,7 +2713,7 @@ class _CopyHitsoundsDialogState extends State<_CopyHitsoundsDialog> {
                     _samplePoints,
                     _clearUnmatched,
                   )),
-          child: const Text('Copy'),
+          child: Text(tr('Copy')),
         ),
       ],
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/core.dart';
+import '../l10n/strings.dart';
 import 'editor_controller.dart';
 import 'editor_screen.dart' show formatEditorTime;
 import 'widgets/form_fields.dart';
@@ -62,8 +63,8 @@ class SongSetupPanel extends StatelessWidget {
   static final _ascii = RegExp(r'^[\x20-\x7E]*$');
 
   static String? _validate(String key, String v) => switch (key) {
-    'Version' when v.trim().isEmpty => 'Required',
-    'Artist' || 'Title' when !_ascii.hasMatch(v) => 'Latin characters only',
+    'Version' when v.trim().isEmpty => tr('Required'),
+    'Artist' || 'Title' when !_ascii.hasMatch(v) => tr('Latin characters only'),
     _ => null,
   };
 
@@ -105,23 +106,23 @@ class SongSetupPanel extends StatelessWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: const Text('Copy metadata to other difficulties?'),
-        content: const Text(
-          'Artist, title, creator, source and tags of this difficulty are written to the '
-          "set's other difficulties right away. This can't be undone.",
+        title: Text(tr('Copy metadata to other difficulties?')),
+        content: Text(
+          tr("Artist, title, creator, source and tags of this difficulty are written to the set's other difficulties right away. "
+              "This can't be undone."),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Copy')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Cancel'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('Copy'))),
         ],
       ),
     );
     if (ok != true) return;
     try {
       final n = await c.syncMetadataToSet();
-      AppToast.show('Updated metadata in $n other difficult${n == 1 ? 'y' : 'ies'}');
+      AppToast.show(tr('Updated metadata in {n} other difficulties', {'n': n}));
     } catch (e) {
-      AppToast.show('Could not update other difficulties: $e');
+      AppToast.show(tr('Could not update other difficulties: {e}', {'e': e}));
     }
   }
 
@@ -182,7 +183,7 @@ class SongSetupPanel extends StatelessWidget {
           title: label,
           initial: value ?? const RgbColour(255, 255, 255),
           canDelete: value != null,
-          deleteLabel: 'Use default',
+          deleteLabel: tr('Use default'),
         ),
       );
       if (result == null) return;
@@ -233,7 +234,7 @@ class SongSetupPanel extends StatelessWidget {
       '${SectionNames.metadata}.$k',
       CommitTextField(
         value: b.getValue(SectionNames.metadata, k) ?? '',
-        label: label,
+        label: tr(label),
         validate: (v) => _validate(k, v),
         onCommit: (v) => _commitText(k, v),
       ),
@@ -243,7 +244,7 @@ class SongSetupPanel extends StatelessWidget {
   Widget _metadataColumn(BuildContext context, ThemeData theme) => ListView(
     padding: const EdgeInsets.fromLTRB(16, 12, 6, 4),
     children: [
-      _section(theme, Icons.library_music_outlined, 'Metadata', [
+      _section(theme, Icons.library_music_outlined, tr('Metadata'), [
         for (final (i, row) in _metadata.indexed)
           Padding(
             padding: EdgeInsets.only(top: i == 0 ? 0 : 10),
@@ -265,16 +266,16 @@ class SongSetupPanel extends StatelessWidget {
               child: TextButton.icon(
                 onPressed: () => _syncSet(context),
                 icon: const Icon(Icons.copy_all, size: 18),
-                label: const Text('Copy metadata to other difficulties…'),
+                label: Text(tr('Copy metadata to other difficulties…')),
               ),
             ),
           ),
       ]),
-      _section(theme, Icons.palette_outlined, 'Colours', [
+      _section(theme, Icons.palette_outlined, tr('Colours'), [
         _comboColours(context, theme),
         const SizedBox(height: 10),
-        _keyColour(context, theme, ComboColours.sliderTrack, 'Slider track', 'Combo colour'),
-        _keyColour(context, theme, ComboColours.sliderBorder, 'Slider border', 'White'),
+        _keyColour(context, theme, ComboColours.sliderTrack, tr('Slider track'), tr('Combo colour')),
+        _keyColour(context, theme, ComboColours.sliderBorder, tr('Slider border'), tr('White')),
       ]),
     ],
   );
@@ -291,7 +292,7 @@ class SongSetupPanel extends StatelessWidget {
       final result = await showDialog<_ColourResult>(
         context: context,
         builder: (_) => _ComboColourDialog(
-          title: index == null ? 'New combo colour' : 'Combo ${index + 1}',
+          title: index == null ? tr('New combo colour') : tr('Combo {n}', {'n': index + 1}),
           initial: index == null ? list.last : list[index],
           canDelete: index != null && list.length > 1,
         ),
@@ -311,7 +312,7 @@ class SongSetupPanel extends StatelessWidget {
       final colour = EditorController.colourOf(shown[i]);
       final light = colour.computeLuminance() > 0.45;
       return Tooltip(
-        message: 'Combo ${i + 1} ${shown[i].hex}',
+        message: tr('Combo {n} {hex}', {'n': i + 1, 'hex': shown[i].hex}),
         child: InkResponse(
           onTap: () => edit(i),
           radius: 24,
@@ -350,7 +351,7 @@ class SongSetupPanel extends StatelessWidget {
               for (var i = 0; i < shown.length; i++) swatch(i),
               if (shown.length < ComboColours.max)
                 IconButton.filledTonal(
-                  tooltip: 'Add combo colour',
+                  tooltip: tr('Add combo colour'),
                   onPressed: () => edit(null),
                   icon: const Icon(Icons.add),
                 ),
@@ -363,13 +364,13 @@ class SongSetupPanel extends StatelessWidget {
                 Expanded(
                   child: Text(
                     own.isEmpty
-                        ? 'Default colours (the map has none). Editing them saves them in the map.'
-                        : 'The first combo uses colour 2; colour 1 comes last.',
+                        ? tr('Default colours (the map has none). Editing them saves them in the map.')
+                        : tr('The first combo uses colour 2; colour 1 comes last.'),
                     style: theme.textTheme.bodySmall?.copyWith(color: s.onSurfaceVariant),
                   ),
                 ),
                 if (own.isNotEmpty)
-                  TextButton(onPressed: () => c.setComboColours(const []), child: const Text('Use defaults')),
+                  TextButton(onPressed: () => c.setComboColours(const []), child: Text(tr('Use defaults'))),
               ],
             ),
           ),
@@ -412,7 +413,7 @@ class SongSetupPanel extends StatelessWidget {
                 children: [
                   Text(label, style: theme.textTheme.labelSmall?.copyWith(color: s.onSurfaceVariant)),
                   Text(
-                    none ? 'None' : name,
+                    none ? tr('None') : name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium?.copyWith(color: none ? s.onSurfaceVariant : null),
@@ -420,7 +421,7 @@ class SongSetupPanel extends StatelessWidget {
                 ],
               ),
             ),
-            FilledButton.tonal(onPressed: c.canChangeSetFiles ? onChange : null, child: const Text('Change…')),
+            FilledButton.tonal(onPressed: c.canChangeSetFiles ? onChange : null, child: Text(tr('Change…'))),
           ],
         ),
       ),
@@ -433,7 +434,7 @@ class SongSetupPanel extends StatelessWidget {
       context,
       '${SectionNames.difficulty}.$k',
       CommitSlider(
-        label: label,
+        label: tr(label),
         inline: true,
         value: _difficultyValue(k),
         min: min,
@@ -475,10 +476,10 @@ class SongSetupPanel extends StatelessWidget {
         height: 40,
         child: Row(
           children: [
-            Expanded(child: Text(label)),
+            Expanded(child: Text(tr(label))),
             PopupMenuButton<T>(
               initialValue: value,
-              tooltip: label,
+              tooltip: tr(label),
               position: PopupMenuPosition.under,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               onSelected: onPick,
@@ -508,7 +509,7 @@ class SongSetupPanel extends StatelessWidget {
       height: 40,
       child: Row(
         children: [
-          Expanded(child: Text(label)),
+          Expanded(child: Text(tr(label))),
           Switch(value: _generalInt(key, 0) == 1, onChanged: (v) => _setGeneral(key, v ? '1' : '0')),
         ],
       ),
@@ -523,7 +524,7 @@ class SongSetupPanel extends StatelessWidget {
     final offset = _generalInt('CountdownOffset', 0).clamp(0, 3);
     return [
       _choice<int>(context, theme, 'SampleSet', 'Default sample set', sampleSet,
-          const [SampleSet.normal, SampleSet.soft, SampleSet.drum], SampleSet.name,
+          const [SampleSet.normal, SampleSet.soft, SampleSet.drum], (v) => tr(SampleSet.name(v)),
           (v) => _setGeneral('SampleSet', SampleSet.name(v))),
       _mark(
         context,
@@ -532,10 +533,12 @@ class SongSetupPanel extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: CommitTextField(
             value: '${_generalInt('AudioLeadIn', 0)}',
-            label: 'Audio lead-in',
+            label: tr('Audio lead-in'),
             suffix: 'ms',
             keyboardType: TextInputType.number,
-            validate: (v) => int.tryParse(v.trim()) == null || int.parse(v.trim()) < 0 ? 'Whole ms, 0 or more' : null,
+            validate: (v) => int.tryParse(v.trim()) == null || int.parse(v.trim()) < 0
+                ? tr('Whole ms, 0 or more')
+                : null,
             onCommit: (v) {
               _setGeneral('AudioLeadIn', '${int.parse(v.trim())}');
               return true;
@@ -547,7 +550,7 @@ class SongSetupPanel extends StatelessWidget {
         context,
         '${SectionNames.general}.StackLeniency',
         CommitSlider(
-          label: 'Stack leniency',
+          label: tr('Stack leniency'),
           inline: true,
           labelWidth: 108,
           value: b.stackLeniency.clamp(0, 1).toDouble(),
@@ -563,11 +566,11 @@ class SongSetupPanel extends StatelessWidget {
           },
         ),
       ),
-      _choice<int>(context, theme, 'Countdown', 'Countdown', countdown, const [0, 1, 2, 3], (v) => _countdowns[v],
-          (v) => _setGeneral('Countdown', '$v')),
+      _choice<int>(context, theme, 'Countdown', 'Countdown', countdown, const [0, 1, 2, 3],
+          (v) => tr(_countdowns[v]), (v) => _setGeneral('Countdown', '$v')),
       if (countdown != 0)
         _choice<int>(context, theme, 'CountdownOffset', 'Countdown offset', offset, const [0, 1, 2, 3],
-            (v) => '$v beat${v == 1 ? '' : 's'}', (v) => _setGeneral('CountdownOffset', '$v')),
+            (v) => tr('{v} beats', {'v': v}), (v) => _setGeneral('CountdownOffset', '$v')),
       _switch(context, 'LetterboxInBreaks', 'Letterbox during breaks'),
       _switch(context, 'WidescreenStoryboard', 'Widescreen storyboard'),
       _switch(context, 'EpilepsyWarning', 'Epilepsy warning'),
@@ -581,15 +584,16 @@ class SongSetupPanel extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(6, 12, 16, 4),
       children: [
-        _section(theme, Icons.folder_outlined, 'Files', [
-          _fileRow(context, theme, 'Files.Audio', Icons.music_note_outlined, 'Audio', b.audioFilename, onSetAudio),
+        _section(theme, Icons.folder_outlined, tr('Files'), [
+          _fileRow(
+              context, theme, 'Files.Audio', Icons.music_note_outlined, tr('Audio'), b.audioFilename, onSetAudio),
           const SizedBox(height: 6),
           _fileRow(
             context,
             theme,
             'Files.Background',
             Icons.image_outlined,
-            'Background',
+            tr('Background'),
             b.backgroundFilename,
             onSetBackground,
           ),
@@ -597,13 +601,13 @@ class SongSetupPanel extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
-                'Files can only be changed for maps in the library.',
+                tr('Files can only be changed for maps in the library.'),
                 style: theme.textTheme.bodySmall?.copyWith(color: s.onSurfaceVariant),
               ),
             ),
         ]),
         if (c.canChangeSetFiles)
-          _section(theme, Icons.layers_outlined, 'Difficulties', [
+          _section(theme, Icons.layers_outlined, tr('Difficulties'), [
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -611,24 +615,24 @@ class SongSetupPanel extends StatelessWidget {
                 FilledButton.tonalIcon(
                   onPressed: () => onNewDifficulty(false),
                   icon: const Icon(Icons.add, size: 18),
-                  label: const Text('New difficulty…'),
+                  label: Text(tr('New difficulty…')),
                 ),
                 FilledButton.tonalIcon(
                   onPressed: () => onNewDifficulty(true),
                   icon: const Icon(Icons.copy, size: 18),
-                  label: const Text('Duplicate this difficulty…'),
+                  label: Text(tr('Duplicate this difficulty…')),
                 ),
                 if (onDeleteDifficulty != null)
                   TextButton.icon(
                     onPressed: onDeleteDifficulty,
                     style: TextButton.styleFrom(foregroundColor: s.error),
                     icon: const Icon(Icons.delete_outline, size: 18),
-                    label: const Text('Delete this difficulty…'),
+                    label: Text(tr('Delete this difficulty…')),
                   ),
               ],
             ),
           ]),
-        _section(theme, Icons.tune, 'Difficulty', [
+        _section(theme, Icons.tune, tr('Difficulty'), [
           for (final d in _difficulty) _slider(context, d),
           // Slider velocity and tick rate share a row.
           Row(
@@ -640,11 +644,11 @@ class SongSetupPanel extends StatelessWidget {
                 '${SectionNames.difficulty}.SliderTickRate',
                 Row(
                   children: [
-                    const Text('Tick rate'),
+                    Text(tr('Tick rate')),
                     const SizedBox(width: 8),
                     PopupMenuButton<double>(
                       initialValue: tickRate,
-                      tooltip: 'Slider tick rate',
+                      tooltip: tr('Slider tick rate'),
                       position: PopupMenuPosition.under,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       onSelected: (r) => _setDifficulty('SliderTickRate', r),
@@ -670,7 +674,7 @@ class SongSetupPanel extends StatelessWidget {
             ],
           ),
         ]),
-        _section(theme, Icons.play_circle_outline, 'Song preview', [
+        _section(theme, Icons.play_circle_outline, tr('Song preview'), [
           _mark(
             context,
             '${SectionNames.general}.PreviewTime',
@@ -679,21 +683,21 @@ class SongSetupPanel extends StatelessWidget {
                 _pill(
                   theme,
                   Text(
-                    preview < 0 ? 'Not set' : formatEditorTime(preview.toDouble()),
+                    preview < 0 ? tr('Not set') : formatEditorTime(preview.toDouble()),
                     style: TextStyle(color: preview < 0 ? s.onSurfaceVariant : s.onSurface),
                   ),
                 ),
                 const Spacer(),
                 TextButton(
                   onPressed: () => _setPreview(c.time.value.round().clamp(0, 1 << 31)),
-                  child: const Text('Use current time'),
+                  child: Text(tr('Use current time')),
                 ),
-                TextButton(onPressed: preview < 0 ? null : () => _setPreview(-1), child: const Text('Clear')),
+                TextButton(onPressed: preview < 0 ? null : () => _setPreview(-1), child: Text(tr('Clear'))),
               ],
             ),
           ),
         ]),
-        _section(theme, Icons.settings_outlined, 'General', _generalSettings(context, theme)),
+        _section(theme, Icons.settings_outlined, tr('General'), _generalSettings(context, theme)),
       ],
     );
   }
@@ -824,10 +828,10 @@ class _ComboColourDialogState extends State<_ComboColourDialog> {
           TextButton(
             onPressed: () => Navigator.pop(context, _ColourResult(c, delete: true)),
             style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
-            child: Text(widget.deleteLabel),
+            child: Text(tr(widget.deleteLabel)),
           ),
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(onPressed: () => Navigator.pop(context, _ColourResult(c)), child: const Text('OK')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Cancel'))),
+        FilledButton(onPressed: () => Navigator.pop(context, _ColourResult(c)), child: Text(tr('OK'))),
       ],
     );
   }

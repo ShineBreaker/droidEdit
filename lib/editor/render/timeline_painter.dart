@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 
 import '../../app_fonts.dart';
 import '../../core/core.dart';
+import '../../l10n/strings.dart';
 import '../editor_controller.dart';
 import 'difficulty_graph.dart';
 import 'playfield_painter.dart';
@@ -367,7 +368,7 @@ class TimelinePainter extends CustomPainter {
       _breakLabelSize = size;
       _breakLabel = TextPainter(
         text: TextSpan(
-          text: 'Break',
+          text: tr('Break'),
           style: TextStyle(color: _breakText, fontSize: size, fontFamily: kUiFont, fontWeight: FontWeight.w600),
         ),
         textDirection: TextDirection.ltr,

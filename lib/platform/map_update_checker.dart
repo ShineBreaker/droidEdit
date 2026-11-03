@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import '../l10n/strings.dart';
 
 import '../core/core.dart';
 
@@ -20,7 +21,7 @@ class MapUpdateChecker {
       req.headers.set(HttpHeaders.userAgentHeader, 'osuEdit');
       final res = await req.close().timeout(const Duration(seconds: 15));
       if (res.statusCode == 404) return null;
-      if (res.statusCode != 200) throw HttpException('osu! answered ${res.statusCode}');
+      if (res.statusCode != 200) throw HttpException(tr('osu! answered {code}', {'code': res.statusCode}));
       final out = BytesBuilder(copy: false);
       await for (final chunk in res.timeout(const Duration(seconds: 20))) {
         out.add(chunk);

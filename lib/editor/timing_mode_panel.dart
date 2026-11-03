@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/core.dart';
+import '../l10n/strings.dart';
 import 'editor_controller.dart';
 import 'editor_screen.dart' show formatEditorTime;
 import 'widgets/bpm_view.dart';
@@ -134,35 +135,35 @@ class _TimingModePanelState extends State<TimingModePanel> {
     final addHere = TextButton.icon(
       onPressed: () => c.addTimingPoint(red: true),
       icon: const Icon(Icons.add, color: timingRed, size: 18),
-      label: const Text('Timing point here'),
+      label: Text(tr('Timing point here')),
     );
     return ListView(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
       children: [
         SetupSection(
           marker: timingRed,
-          title: 'Timing point',
-          subtitle: red == null ? 'None here' : formatEditorTime(red.time),
+          title: tr('Timing point'),
+          subtitle: red == null ? tr('None here') : formatEditorTime(red.time),
           trailing: [
             IconButton(
-              tooltip: 'Previous',
+              tooltip: tr('Previous'),
               onPressed: i > 0 ? () => c.seek(reds[i - 1].time) : null,
               icon: const Icon(Icons.chevron_left, size: 20),
             ),
             IconButton(
-              tooltip: 'Next',
+              tooltip: tr('Next'),
               onPressed: i >= 0 && i + 1 < reds.length ? () => c.seek(reds[i + 1].time) : null,
               icon: const Icon(Icons.chevron_right, size: 20),
             ),
             IconButton(
-              tooltip: 'Delete point',
+              tooltip: tr('Delete point'),
               onPressed: red == null ? null : () => c.deleteTimingPoint(red),
               icon: const Icon(Icons.delete_outline, size: 20),
             ),
           ],
           children: [
             if (red == null)
-              const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('No timing point yet.'))
+              Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text(tr('No timing point yet.')))
             else
               // Fields belong to this point: typing must never commit to
               // the next section's point after the playhead moves on.
@@ -170,14 +171,15 @@ class _TimingModePanelState extends State<TimingModePanel> {
             Align(alignment: Alignment.centerLeft, child: addHere),
           ],
         ),
-        if (red != null) SetupSection(icon: Icons.touch_app_outlined, title: 'Tap tempo', children: [_tapTempo(red)]),
+        if (red != null)
+          SetupSection(icon: Icons.touch_app_outlined, title: tr('Tap tempo'), children: [_tapTempo(red)]),
         SetupSection(
           icon: Icons.tune,
-          title: 'Options',
+          title: tr('Options'),
           children: [
             SetupRow(
-              label: 'Move objects with timing',
-              subtitle: "Offset / BPM changes keep the section's objects on their beats",
+              label: tr('Move objects with timing'),
+              subtitle: tr("Offset / BPM changes keep the section's objects on their beats"),
               trailing: Switch(value: c.moveObjectsWithTiming, onChanged: (v) => c.moveObjectsWithTiming = v),
               onTap: () => c.moveObjectsWithTiming = !c.moveObjectsWithTiming,
             ),
@@ -222,7 +224,7 @@ class _TimingModePanelState extends State<TimingModePanel> {
           children: [
             Expanded(
               child: CommitTextField(
-                label: 'Offset',
+                label: tr('Offset'),
                 suffix: 'ms',
                 value: formatNumber(red.time),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
@@ -237,7 +239,7 @@ class _TimingModePanelState extends State<TimingModePanel> {
             _step,
             TextButton(
               onPressed: () => _editRed(red, red.copyWith(time: c.time.value.roundToDouble())),
-              child: const Text('Use current'),
+              child: Text(tr('Use current')),
             ),
           ],
         ),
@@ -255,12 +257,12 @@ class _TimingModePanelState extends State<TimingModePanel> {
         ),
         _gap,
         SetupRow(
-          label: 'Meter',
+          label: tr('Meter'),
           trailing: SetupChoicePill<int>(
             value: red.meter,
             choices: [..._meters, if (!_meters.contains(red.meter)) red.meter],
             name: (m) => '$m/4',
-            tooltip: 'Meter',
+            tooltip: tr('Meter'),
             onPick: (m) => _editRed(red, red.copyWith(meter: m)),
           ),
         ),
@@ -278,19 +280,22 @@ class _TimingModePanelState extends State<TimingModePanel> {
             // Counted on touch down: waiting for the release would skew taps.
             Listener(
               onPointerDown: (_) => _tap(),
-              child: FilledButton.tonal(onPressed: () {}, child: const Text('Tap')),
+              child: FilledButton.tonal(onPressed: () {}, child: Text(tr('Tap'))),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                tapped == null ? 'Tap along to the beat' : '${_taps.length} taps · ${tapped.toStringAsFixed(1)} BPM',
+                tapped == null
+                    ? tr('Tap along to the beat')
+                    : tr('{n} taps · {bpm} BPM', {'n': _taps.length, 'bpm': tapped.toStringAsFixed(1)}),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
             TextButton(
               onPressed: _taps.length >= 4 ? () => _applyTapped(red) : null,
-              child: Text(tapped == null || _taps.length < 4 ? 'Apply' : 'Apply ${tapped.round()}'),
+              child: Text(
+                  tapped == null || _taps.length < 4 ? tr('Apply') : tr('Apply {bpm}', {'bpm': tapped.round()})),
             ),
           ],
         ),

@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
+import '../l10n/language_dialog.dart';
+import '../l10n/strings.dart';
 
 import 'package:flutter/material.dart';
 
@@ -130,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // Newer release on GitHub? (Quiet unless there is one.)
       if (AppUpdater.supported && mounted) checkForUpdates(context).ignore();
     } catch (e) {
-      if (mounted) setState(() => _error = 'Library unavailable: $e');
+      if (mounted) setState(() => _error = tr('Library unavailable: {e}', {'e': e}));
     }
   }
 
@@ -213,7 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final set = await lib.importOsz(picked.bytes, fallbackName: picked.name);
         await _refresh();
         _revealSet(set.path);
-        _snack('Imported ${set.folderName} (${set.difficulties.length} difficulties)');
+        _snack(tr('Imported {name} ({n} difficulties)', {'name': set.folderName, 'n': set.difficulties.length}));
         await _settleSliderFormat(set.path, set.folderName);
       });
 
@@ -235,13 +237,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final choice = await showDialog<String>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: const Text('Import beatmap?'),
-        content: Text('Import "$name" into the library as a new beatmap set? '
-            'Its audio and background are copied too when they are in the same folder.'),
+        title: Text(tr('Import beatmap?')),
+        content: Text(tr(
+            'Import "{name}" into the library as a new beatmap set? Its audio and background are copied too when they are in the same folder.',
+            {'name': name})),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, 'open'), child: const Text('Open without importing')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, 'import'), child: const Text('Import')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('Cancel'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, 'open'), child: Text(tr('Open without importing'))),
+          FilledButton(onPressed: () => Navigator.pop(ctx, 'import'), child: Text(tr('Import'))),
         ],
       ),
     );
@@ -253,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final set = await lib.importOsz(osz, fallbackName: dot > 0 ? name.substring(0, dot) : name);
       await _refresh();
       _revealSet(set.path);
-      _snack('Imported ${set.folderName}');
+      _snack(tr('Imported {name}', {'name': set.folderName}));
       await _settleSliderFormat(set.path, set.folderName);
     });
   }
@@ -321,9 +324,9 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         await _refresh();
         _snack([
-          if (ok > 0) 'Imported $ok ${ok == 1 ? 'set' : 'sets'}',
-          if (skin != null) 'Skin "${skin.name}" imported and selected',
-          if (failed.isNotEmpty) 'Failed: ${failed.join('; ')}',
+          if (ok > 0) tr('Imported {n} sets', {'n': ok}),
+          if (skin != null) tr('Skin "{name}" imported and selected', {'name': skin.name}),
+          if (failed.isNotEmpty) tr('Failed: {list}', {'list': failed.join('; ')}),
         ].join('. '));
         for (final set in imported) {
           await _settleSliderFormat(set.path, set.folderName);
@@ -350,7 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (convert) {
       final n = await lib.convertSetToStable(setPath);
       await lib.setKeepsLazerSliders(setPath, false);
-      _snack('Converted $n ${n == 1 ? 'slider' : 'sliders'} to osu!stable format');
+      _snack(tr('Converted {n} sliders to osu!stable format', {'n': n}));
       return false;
     }
     await lib.setKeepsLazerSliders(setPath, true);
@@ -364,16 +367,17 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AppDialog(
-        title: const Text('osu!lazer slider format'),
+        title: Text(tr('osu!lazer slider format')),
         content: Text(
-          '$what has $count ${count == 1 ? 'slider' : 'sliders'} in osu!lazer\'s format '
-          '(several curve types in one slider, or B-spline curves), which osu!stable can\'t show correctly.\n\n'
-          'Convert to stable: they become Bézier curves of the same shape, and sliders are edited the stable way.\n\n'
-          'Keep lazer format: sliders are saved and edited the lazer way — each control point can have its own curve type.',
+          tr('{what} has {count} sliders in osu!lazer\'s format (several curve types in one slider, or B-spline curves), '
+                  'which osu!stable can\'t show correctly.\n\nConvert to stable: they become Bézier curves of the same '
+                  'shape, and sliders are edited the stable way.\n\nKeep lazer format: sliders are saved and edited '
+                  'the lazer way — each control point can have its own curve type.',
+              {'what': what, 'count': count}),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep lazer format')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Convert to stable')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Keep lazer format'))),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('Convert to stable'))),
         ],
       ),
     );
@@ -393,15 +397,17 @@ class _HomeScreenState extends State<HomeScreen> {
       case MapFolderResult.opened:
         break;
       case MapFolderResult.openedLibraryRoot:
-        _snack('Opened the osuEdit library in Files: the map is in "${set.folderName}"');
+        _snack(tr('Opened the osuEdit library in Files: the map is in "{dir}"', {'dir': set.folderName}));
       case MapFolderResult.failed:
-        _snack('Could not open the folder (no file manager found)');
+        _snack(tr('Could not open the folder (no file manager found)'));
     }
   }
 
   Future<void> _exportSet(LibrarySet set) => _run(() async {
         final bytes = await _library!.exportOsz(set.path);
-        if (await files.saveOsz(BeatmapLibrary.oszFileName(set), bytes)) _snack('Exported ${set.folderName}');
+        if (await files.saveOsz(BeatmapLibrary.oszFileName(set), bytes)) {
+          _snack(tr('Exported {name}', {'name': set.folderName}));
+        }
       });
 
   /// Long press on a difficulty: a drop-down at the finger with its actions.
@@ -412,10 +418,10 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       position: RelativeRect.fromLTRB(pos.dx, pos.dy, size.width - pos.dx, size.height - pos.dy),
       items: [
-        const PopupMenuItem(value: 'open', child: Text('Open .osu file')),
-        if (url != null) const PopupMenuItem(value: 'page', child: Text('Open map page')),
-        if (MapFolder.supported) const PopupMenuItem(value: 'folder', child: Text('Open song folder')),
-        if (set.difficulties.length > 1) const PopupMenuItem(value: 'delete', child: Text('Delete difficulty')),
+        PopupMenuItem(value: 'open', child: Text(tr('Open .osu file'))),
+        if (url != null) PopupMenuItem(value: 'page', child: Text(tr('Open map page'))),
+        if (MapFolder.supported) PopupMenuItem(value: 'folder', child: Text(tr('Open song folder'))),
+        if (set.difficulties.length > 1) PopupMenuItem(value: 'delete', child: Text(tr('Delete difficulty'))),
       ],
     );
     if (!mounted) return;
@@ -423,7 +429,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'open':
         await _openDifficulty(set, d);
       case 'page':
-        if (url != null && !await WebLinks.open(url)) _snack('Could not open $url');
+        if (url != null && !await WebLinks.open(url)) _snack(tr('Could not open {url}', {'url': url}));
       case 'folder':
         await _openSetFolder(set);
       case 'delete':
@@ -435,11 +441,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: Text('Delete "${d.summary.version.isEmpty ? d.fileName : d.summary.version}"?'),
-        content: Text("The file ${d.fileName} is deleted from the set. This can't be undone."),
+        title: Text(tr('Delete "{version}"?', {'version': d.summary.version.isEmpty ? d.fileName : d.summary.version})),
+        content: Text(tr("The file {file} is deleted from the set. This can't be undone.", {'file': d.fileName})),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Cancel'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('Delete'))),
         ],
       ),
     );
@@ -454,11 +460,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: const Text('Delete set?'),
-        content: Text('"${set.folderName}" and all its files will be removed from the library.'),
+        title: Text(tr('Delete set?')),
+        content: Text(tr('"{name}" and all its files will be removed from the library.', {'name': set.folderName})),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Cancel'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('Delete'))),
         ],
       ),
     );
@@ -484,12 +490,13 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AppDialog(
-        title: const Text('Recover unsaved changes?'),
-        content: Text('This map has changes that were not saved (autosaved $when). '
-            'Open them, or discard them and open the saved file?'),
+        title: Text(tr('Recover unsaved changes?')),
+        content: Text(tr(
+            'This map has changes that were not saved (autosaved {when}). Open them, or discard them and open the saved file?',
+            {'when': when})),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Discard')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Recover')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Discard'))),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('Recover'))),
         ],
       ),
     );
@@ -523,7 +530,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final warnings = <String>[];
       var beatmap = OsuParser.parse(loaded.text, warnings: warnings);
       if (warnings.isNotEmpty) {
-        AppToast.show('${warnings.length} line(s) could not be parsed and will be dropped on save.');
+        AppToast.show(tr('{n} line(s) could not be parsed and will be dropped on save.', {'n': warnings.length}));
       }
       // Sliders in osu!lazer's format: library sets ask once per set (sets
       // imported before this was asked), other files every time.
@@ -540,7 +547,7 @@ class _HomeScreenState extends State<HomeScreen> {
       } else {
         final count = SliderFormatOps.lazerSliders(beatmap).length;
         if (count > 0 && mounted) {
-          convert = await _askSliderFormat('This beatmap', count);
+          convert = await _askSliderFormat(tr('This beatmap'), count);
           lazerSliders = !convert;
         }
       }
@@ -561,7 +568,7 @@ class _HomeScreenState extends State<HomeScreen> {
       await _openEditor(navigator, beatmap, doc,
           lazerSliders: lazerSliders, convertSliders: convert, recovered: recovered);
     } catch (e) {
-      AppToast.show('Could not open: $e');
+      AppToast.show(tr('Could not open: {e}', {'e': e}));
     } finally {
       _setOpening(null);
     }
@@ -580,10 +587,10 @@ class _HomeScreenState extends State<HomeScreen> {
         await _preview.stop();
         audio = await widget.audioLoader(setPath, beatmap);
         if (audio == null && beatmap.audioFilename.isNotEmpty) {
-          AppToast.show('Audio file "${beatmap.audioFilename}" not found; editing without sound.');
+          AppToast.show(tr('Audio file "{name}" not found; editing without sound.', {'name': beatmap.audioFilename}));
         }
       } catch (e) {
-        AppToast.show('Could not load audio ($e); editing without sound.');
+        AppToast.show(tr('Could not load audio ({e}); editing without sound.', {'e': e}));
       } finally {
         if (mounted) setState(() => _busy = false);
       }
@@ -679,11 +686,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _openDefaultAppSettings() async {
     final opened = await IncomingFiles.openDefaultAppSettings();
     if (opened == null) {
-      _snack('Could not open the settings screen.');
+      _snack(tr('Could not open the settings screen.'));
     } else if (opened == 'lazer') {
-      _snack('In osu!lazer\'s app info: Open by default → Clear defaults.');
+      _snack(tr('In osu!lazer\'s app info: Open by default → Clear defaults.'));
     } else {
-      _snack('osu!lazer is not installed; showing this app\'s settings.');
+      _snack(tr('osu!lazer is not installed; showing this app\'s settings.'));
     }
   }
 
@@ -877,12 +884,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: Text('Update "$name"?'),
-        content: const Text('The local file is replaced by the version on the osu! website. '
-            'Your local changes to this difficulty are lost.'),
+        title: Text(tr('Update "{name}"?', {'name': name})),
+        content: Text(tr(
+            'The local file is replaced by the version on the osu! website. Your local changes to this difficulty are lost.')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Update')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Cancel'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('Update'))),
         ],
       ),
     );
@@ -890,10 +897,10 @@ class _HomeScreenState extends State<HomeScreen> {
     await _run(() async {
       _remoteMaps.remove(id); // fetch the latest
       final bytes = await MapUpdateChecker.fetch(id);
-      if (bytes == null) throw 'The osu! website has no file for this difficulty';
+      if (bytes == null) throw tr('The osu! website has no file for this difficulty');
       await File(d.path).writeAsBytes(bytes, flush: true);
       await _refresh();
-      _snack('Updated "$name"');
+      _snack(tr('Updated "{name}"', {'name': name}));
     });
   }
 
@@ -909,7 +916,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onOpenPage: url == null
           ? null
           : () async {
-              if (!await WebLinks.open(url)) _snack('Could not open $url');
+              if (!await WebLinks.open(url)) _snack(tr('Could not open {url}', {'url': url}));
             },
     );
   }
@@ -923,11 +930,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: Row(children: [
           Expanded(
-            child: Text('${_pending.length} .osz / .osk file(s) found in the app folder.',
+            child: Text(tr('{n} .osz / .osk file(s) found in the app folder.', {'n': _pending.length}),
                 style: const TextStyle(color: Colors.white, fontSize: 12)),
           ),
-          TextButton(onPressed: _busy ? null : _discardPending, child: const Text('Discard')),
-          TextButton(onPressed: _busy ? null : _importPending, child: const Text('Import')),
+          TextButton(onPressed: _busy ? null : _discardPending, child: Text(tr('Discard'))),
+          TextButton(onPressed: _busy ? null : _importPending, child: Text(tr('Import'))),
         ]),
       );
 
@@ -950,7 +957,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 FilledButton.icon(
                   onPressed: _busy ? null : _importOsz,
                   icon: const Icon(Icons.file_download_outlined, size: 18),
-                  label: const Text('Import .osz'),
+                  label: Text(tr('Import .osz')),
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFFFF66AA),
                     foregroundColor: Colors.white,
@@ -961,7 +968,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 TextButton.icon(
                   onPressed: _busy ? null : _newMap,
                   icon: const Icon(Icons.add, size: 18),
-                  label: const Text('New map'),
+                  label: Text(tr('New map')),
                   style: TextButton.styleFrom(foregroundColor: Colors.white, visualDensity: VisualDensity.compact),
                 ),
               ]),
@@ -969,27 +976,29 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         IconButton(
-          tooltip: 'Refresh',
+          tooltip: tr('Refresh'),
           color: Colors.white,
           visualDensity: VisualDensity.compact,
           onPressed: _busy ? null : _refreshWithFeedback,
           icon: const Icon(Icons.refresh),
         ),
         PopupMenuButton<String>(
-          tooltip: 'More',
+          tooltip: tr('More'),
           iconColor: Colors.white,
           onSelected: (v) => switch (v) {
             'osu' => _openOsuFile(),
+            'language' => pickUiLanguage(context),
             'defaults' => _openDefaultAppSettings(),
             'skins' => showSkinPicker(context, files: files),
             'update' => checkForUpdates(context, manual: true),
             _ => null,
           },
           itemBuilder: (_) => [
-            const PopupMenuItem(value: 'osu', child: Text('Open single .osu file')),
-            const PopupMenuItem(value: 'skins', child: Text('Skins…')),
-            if (Platform.isAndroid) const PopupMenuItem(value: 'defaults', child: Text('.osz default app settings')),
-            if (AppUpdater.supported) const PopupMenuItem(value: 'update', child: Text('Check for updates')),
+            PopupMenuItem(value: 'osu', child: Text(tr('Open single .osu file'))),
+            PopupMenuItem(value: 'language', child: Text(tr('Language…'))),
+            PopupMenuItem(value: 'skins', child: Text(tr('Skins…'))),
+            if (Platform.isAndroid) PopupMenuItem(value: 'defaults', child: Text(tr('.osz default app settings'))),
+            if (AppUpdater.supported) PopupMenuItem(value: 'update', child: Text(tr('Check for updates'))),
           ],
         ),
       ]),
@@ -1010,10 +1019,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final sets = _sets;
     if (sets == null) return const Center(child: CircularProgressIndicator());
     if (sets.isEmpty) {
-      return _message(const Text(
-        'No beatmaps yet.\nImport an .osz or create a new map.',
+      return _message(Text(
+        tr('No beatmaps yet.\nImport an .osz or create a new map.'),
         textAlign: TextAlign.center,
-        style: TextStyle(color: Colors.white, fontSize: 14),
+        style: const TextStyle(color: Colors.white, fontSize: 14),
       ));
     }
     _listKeys.removeWhere((k, _) => !sets.any((s) => s.path == k));
@@ -1065,7 +1074,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _setMenu(LibrarySet set) => PopupMenuButton<String>(
-        tooltip: 'Set options',
+        tooltip: tr('Set options'),
         iconColor: Colors.white70,
         onSelected: (v) => switch (v) {
           'export' => _exportSet(set),
@@ -1073,9 +1082,9 @@ class _HomeScreenState extends State<HomeScreen> {
           _ => _deleteSet(set),
         },
         itemBuilder: (_) => [
-          const PopupMenuItem(value: 'export', child: Text('Export .osz')),
-          if (MapFolder.supported) const PopupMenuItem(value: 'folder', child: Text('Open folder')),
-          const PopupMenuItem(value: 'delete', child: Text('Delete')),
+          PopupMenuItem(value: 'export', child: Text(tr('Export .osz'))),
+          if (MapFolder.supported) PopupMenuItem(value: 'folder', child: Text(tr('Open folder'))),
+          PopupMenuItem(value: 'delete', child: Text(tr('Delete'))),
         ],
       );
 }

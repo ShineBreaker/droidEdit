@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../app_fonts.dart';
 import '../../app_dialog.dart';
+import '../../l10n/strings.dart';
 
 /// What [GoToTimeDialog] was closed with: a time picked on the wheels, or
 /// a request for the manual (pasted timestamp) input instead.
@@ -74,7 +75,7 @@ class _GoToTimeDialogState extends State<GoToTimeDialog> {
   Widget build(BuildContext context) {
     final sep = Text(':', style: Theme.of(context).textTheme.titleLarge);
     return AppDialog(
-      title: const Text('Go to time'),
+      title: Text(tr('Go to time')),
       contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
       content: SizedBox(
         height: _itemExtent * 4,
@@ -90,9 +91,9 @@ class _GoToTimeDialogState extends State<GoToTimeDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context, const GoToTimeManual()), child: const Text('Manual input')),
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        TextButton(onPressed: () => Navigator.pop(context, GoToTimePicked(_ms)), child: const Text('Go')),
+        TextButton(onPressed: () => Navigator.pop(context, const GoToTimeManual()), child: Text(tr('Manual input'))),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Cancel'))),
+        TextButton(onPressed: () => Navigator.pop(context, GoToTimePicked(_ms)), child: Text(tr('Go'))),
       ],
     );
   }

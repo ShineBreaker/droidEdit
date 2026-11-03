@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/strings.dart';
 import '../editor_controller.dart';
 import '../render/bpm_painter.dart';
 
@@ -163,7 +164,7 @@ class _BpmViewState extends State<BpmView> {
             child: Row(
               children: [
                 const SizedBox(width: 8),
-                Text('Rows', style: small),
+                Text(tr('Rows'), style: small),
                 const SizedBox(width: 6),
                 SegmentedButton<bool>(
                   showSelectedIcon: false,
@@ -171,23 +172,23 @@ class _BpmViewState extends State<BpmView> {
                     visualDensity: VisualDensity(horizontal: -4, vertical: -4),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  segments: const [
-                    ButtonSegment(value: false, label: Text('Beat')),
-                    ButtonSegment(value: true, label: Text('Bar')),
+                  segments: [
+                    ButtonSegment(value: false, label: Text(tr('Beat'))),
+                    ButtonSegment(value: true, label: Text(tr('Bar'))),
                   ],
                   selected: {_bars},
                   onSelectionChanged: (s) => setState(() => _bars = s.first),
                 ),
                 const SizedBox(width: 6),
                 IconButton(
-                  tooltip: 'Taller rows',
+                  tooltip: tr('Taller rows'),
                   visualDensity: VisualDensity.compact,
                   iconSize: 18,
                   onPressed: _rowHeight < 80 ? () => setState(() => _rowHeight += 10) : null,
                   icon: const Icon(Icons.unfold_more),
                 ),
                 IconButton(
-                  tooltip: 'More rows',
+                  tooltip: tr('More rows'),
                   visualDensity: VisualDensity.compact,
                   iconSize: 18,
                   onPressed: _rowHeight > 20 ? () => setState(() => _rowHeight -= 10) : null,
@@ -197,10 +198,10 @@ class _BpmViewState extends State<BpmView> {
                 if (loading) ...[
                   const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5)),
                   const SizedBox(width: 6),
-                  Text('Decoding waveform…', style: small),
+                  Text(tr('Decoding waveform…'), style: small),
                   const SizedBox(width: 8),
                 ] else if (!c.hasAudio)
-                  Padding(padding: const EdgeInsets.only(right: 8), child: Text('No audio', style: small)),
+                  Padding(padding: const EdgeInsets.only(right: 8), child: Text(tr('No audio'), style: small)),
               ],
             ),
           ),
@@ -253,7 +254,7 @@ class _BpmViewState extends State<BpmView> {
                       ),
                     );
                   })
-                : Center(child: Text('Add a timing point to see the beat rows.', style: small)),
+                : Center(child: Text(tr('Add a timing point to see the beat rows.'), style: small)),
           ),
         ],
       ),

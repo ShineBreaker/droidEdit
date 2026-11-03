@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import '../l10n/strings.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -139,7 +140,7 @@ abstract final class AppUpdater {
       req.headers.set(HttpHeaders.acceptHeader, 'application/vnd.github+json');
       req.headers.set(HttpHeaders.userAgentHeader, 'osuEdit');
       final res = await req.close().timeout(const Duration(seconds: 15));
-      if (res.statusCode != 200) throw HttpException('GitHub answered ${res.statusCode}');
+      if (res.statusCode != 200) throw HttpException(tr('GitHub answered {code}', {'code': res.statusCode}));
       final body = await res.transform(utf8.decoder).join().timeout(const Duration(seconds: 15));
       return jsonDecode(body) as List<Object?>;
     } finally {
@@ -208,7 +209,7 @@ abstract final class AppUpdater {
   /// A partial or wrong-sized file is deleted and reported as an error.
   static Future<File> download(UpdateInfo info, {void Function(double)? onProgress}) async {
     final uri = Uri.parse(info.apkUrl);
-    if (uri.scheme != 'https') throw const HttpException('Refusing a non-HTTPS download');
+    if (uri.scheme != 'https') throw HttpException(tr('Refusing a non-HTTPS download'));
     final dir = Directory('${(await getTemporaryDirectory()).path}${Platform.pathSeparator}updates');
     if (await dir.exists()) await dir.delete(recursive: true);
     await dir.create(recursive: true);
@@ -218,7 +219,7 @@ abstract final class AppUpdater {
       final req = await client.getUrl(uri);
       req.headers.set(HttpHeaders.userAgentHeader, 'osuEdit');
       final res = await req.close();
-      if (res.statusCode != 200) throw HttpException('Download failed (${res.statusCode})');
+      if (res.statusCode != 200) throw HttpException(tr('Download failed ({code})', {'code': res.statusCode}));
       final total = res.contentLength > 0 ? res.contentLength : info.apkSize;
       final sink = file.openWrite();
       var got = 0;
@@ -232,7 +233,7 @@ abstract final class AppUpdater {
         await sink.close();
       }
       if (info.apkSize > 0 && got != info.apkSize) {
-        throw HttpException('Download incomplete ($got of ${info.apkSize} bytes)');
+        throw HttpException(tr('Download incomplete ({got} of {size} bytes)', {'got': got, 'size': info.apkSize}));
       }
       return file;
     } catch (_) {
