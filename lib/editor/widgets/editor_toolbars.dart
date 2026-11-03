@@ -293,6 +293,13 @@ class HitsoundToolbox extends StatelessWidget {
             active: c.lockNotes,
             onTap: () => c.lockNotes = !c.lockNotes,
           ),
+          ToolboxTile(
+            icon: Icons.layers_outlined,
+            label: tr('Overlap'),
+            tooltip: tr('Allow notes at the same time'),
+            active: c.placeOverlapping,
+            onTap: () => c.placeOverlapping = !c.placeOverlapping,
+          ),
         ]),
       ),
     );

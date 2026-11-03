@@ -67,6 +67,8 @@ const zhStrings = <String, String>{
   'Grid snap (T) · long-press: grid size': '网格吸附 (T)·长按：网格大小',
   'Distance snap (Y) · long-press: distance spacing': '间距吸附 (Y)·长按：间距倍数',
   'Lock': '锁定',
+  'Overlap': '堆叠',
+  'Allow notes at the same time': '允许同一时间点放置多个物件',
   'Lock notes (L)': '锁定物件 (L)',
   'Grid size': '网格大小',
   'Distance snap': '间距吸附',

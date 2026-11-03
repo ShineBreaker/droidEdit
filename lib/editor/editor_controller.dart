@@ -1542,7 +1542,7 @@ class EditorController extends ChangeNotifier {
   /// hitsounds kept ([PlacementOps.withSoundsOf]). Returns what was added.
   HitObject _addPlaced(HitObject h) {
     final old = PlacementOps.startingAt(beatmap.hitObjects, h.time);
-    if (old.isEmpty) {
+    if (old.isEmpty || placeOverlapping) {
       history.execute(AddHitObjectsCommand([h]));
       return h;
     }
@@ -1682,14 +1682,16 @@ class EditorController extends ChangeNotifier {
     final nc = _placeNewCombo;
     final ghost = HitCircle(position: at, time: t, newCombo: nc, comboSkip: nc ? _placeComboSkip : 0);
     final old = PlacementOps.startingAt(beatmap.hitObjects, t);
-    return old.isEmpty ? ghost : PlacementOps.withSoundsOf(ghost, old.first) as HitCircle;
+    return old.isEmpty || placeOverlapping ? ghost : PlacementOps.withSoundsOf(ghost, old.first) as HitCircle;
   }
 
   /// Whether an object already starts at the [placementGhost]'s time:
   /// releasing replaces it ([isBeingReplaced]).
   bool get placementCollides {
     final g = placementGhost;
-    return g != null && PlacementOps.startingAt(beatmap.hitObjects, g.time).isNotEmpty;
+    return g != null &&
+        !placeOverlapping &&
+        PlacementOps.startingAt(beatmap.hitObjects, g.time).isNotEmpty;
   }
 
   final Set<HitObject> _ghostReplaces = Set.identity();
@@ -1703,22 +1705,22 @@ class EditorController extends ChangeNotifier {
     return _ghostReplaces.contains(h);
   }
 
-  // Combos with the ghost inserted, for (revision, time, new combo, skip).
-  (int, double, bool, int)? _ghostKey;
+  // Combos with the ghost inserted, for (revision, time, new combo, skip, overlap).
+  (int, double, bool, int, bool)? _ghostKey;
   ComboInfo? _ghostCombo;
   final Map<HitObject, ComboInfo> _ghostShifted = Map.identity();
 
   /// The ghost's combo and the other objects' combos that change with it.
   void _ensureGhostCombos(HitCircle g) {
     _ensureCache();
-    final key = (beatmap.revision, g.time, g.newCombo, g.comboSkip);
+    final key = (beatmap.revision, g.time, g.newCombo, g.comboSkip, placeOverlapping);
     // (What is replaced only depends on the time and the map.)
     if (key == _ghostKey) return;
     _ghostKey = key;
     _ghostShifted.clear();
     _ghostReplaces
       ..clear()
-      ..addAll(PlacementOps.startingAt(beatmap.hitObjects, g.time));
+      ..addAll(placeOverlapping ? const <HitObject>[] : PlacementOps.startingAt(beatmap.hitObjects, g.time));
     final objs = [for (final h in beatmap.hitObjects) if (!_ghostReplaces.contains(h)) h];
     // Where AddHitObjectsCommand would put it: after objects at its time.
     final at = Beatmap.upperBound(objs, g.time, (h) => h.time);
@@ -4117,6 +4119,13 @@ class EditorController extends ChangeNotifier {
   bool get lockNotes => editSettings.lockNotes;
   set lockNotes(bool v) {
     if (v != lockNotes) _setEdit((e) => e.lockNotes = v);
+  }
+
+  /// Placing where a note already starts adds alongside instead of
+  /// replacing — stacked notes at one timestamp.
+  bool get placeOverlapping => editSettings.placeOverlapping;
+  set placeOverlapping(bool v) {
+    if (v != placeOverlapping) _setEdit((e) => e.placeOverlapping = v);
   }
 
   /// Curve type of newly drawn sliders (Display options).

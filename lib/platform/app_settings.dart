@@ -158,6 +158,10 @@ class EditSettings {
   /// point count (stable / lazer placement), the others force one type.
   DefaultSliderType defaultSliderType;
 
+  /// Placing a note where one already starts adds it alongside instead of
+  /// replacing (stacked notes at the same timestamp).
+  bool placeOverlapping;
+
   EditSettings({
     this.gridSnap = false,
     this.distanceSnap = false,
@@ -166,6 +170,7 @@ class EditSettings {
     this.scaleKeepsSliderShape = false,
     this.scaleLocksAspect = true,
     this.defaultSliderType = DefaultSliderType.auto,
+    this.placeOverlapping = false,
   });
 
   factory EditSettings.fromJson(Map<String, Object?> j) => EditSettings(
@@ -176,6 +181,7 @@ class EditSettings {
         scaleKeepsSliderShape: j['scaleKeepsSliderShape'] == true,
         scaleLocksAspect: j['scaleLocksAspect'] != false,
         defaultSliderType: DefaultSliderType.values.asNameMap()[j['defaultSliderType']] ?? DefaultSliderType.auto,
+        placeOverlapping: j['placeOverlapping'] == true,
       );
 
   Map<String, Object?> toJson() => {
@@ -186,6 +192,7 @@ class EditSettings {
         'scaleKeepsSliderShape': scaleKeepsSliderShape,
         'scaleLocksAspect': scaleLocksAspect,
         'defaultSliderType': defaultSliderType.name,
+        'placeOverlapping': placeOverlapping,
       };
 }
 
