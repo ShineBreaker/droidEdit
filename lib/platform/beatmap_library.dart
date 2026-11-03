@@ -7,6 +7,7 @@ import '../l10n/strings.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../core/core.dart';
+import 'app_settings.dart';
 import 'beatmap_file_service.dart';
 
 /// One `.osu` file inside a set folder.
@@ -68,8 +69,17 @@ class BeatmapLibrary {
     final base = Platform.isAndroid || Platform.isIOS
         ? await getApplicationDocumentsDirectory()
         : await getApplicationSupportDirectory();
+    // A user-picked root (UiSettings.libraryPath) replaces the private
+    // Songs folder — e.g. osu!droid's shared Songs folder.
+    var rootPath = joinPath(base.path, 'Songs');
+    try {
+      final custom = (await SettingsStore.open()).ui.libraryPath;
+      if (custom != null) rootPath = custom;
+    } catch (_) {
+      // No settings store (tests, plugin-less platforms): private root.
+    }
     final lib = BeatmapLibrary(
-      Directory(joinPath(base.path, 'Songs')),
+      Directory(rootPath),
       // iOS: the Files app shows Documents; "Open in" copies to Documents/Inbox.
       // Android: MainActivity copies shared / opened .osz into Inbox.
       inboxes: Platform.isIOS
@@ -78,7 +88,12 @@ class BeatmapLibrary {
               ? [Directory(joinPath(base.path, 'Inbox'))]
               : const [],
     );
-    await lib.root.create(recursive: true);
+    try {
+      await lib.root.create(recursive: true);
+    } on FileSystemException {
+      // A custom root may be missing or not writable; listing still works
+      // (it just finds nothing) instead of taking the home screen down.
+    }
     return lib;
   }
 

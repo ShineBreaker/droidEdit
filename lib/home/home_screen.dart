@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import '../l10n/language_dialog.dart';
 import '../l10n/strings.dart';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../core/core.dart';
@@ -698,6 +700,73 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) AppToast.show(text);
   }
 
+  /// Whether [path] is a directory the app can read (all-files access on
+  /// Android 11+, or any readable folder elsewhere).
+  static Future<bool> _readableDir(String path) async {
+    try {
+      final d = Directory(path);
+      return await d.exists() && await d.list().isEmpty.then((_) => true, onError: (_) => false);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// ⋮ → Beatmap folder…: the library lives in the app's own Songs folder
+  /// or, once picked, any folder the user chooses — e.g. osu!droid's Songs,
+  /// so the two apps edit the same maps.
+  Future<void> _changeLibraryFolder() async {
+    final lib = _library;
+    if (lib == null || _busy) return;
+    final settings = await SettingsStore.open();
+    if (!mounted) return;
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(tr('Beatmap folder')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(tr('Beatmap sets are read from and saved to this folder — pick osu!droid\'s Songs '
+                'folder to share its maps.')),
+            const SizedBox(height: 8),
+            Text(lib.root.path, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, 'default'), child: Text(tr('Use app folder'))),
+          FilledButton(onPressed: () => Navigator.pop(ctx, 'pick'), child: Text(tr('Choose…'))),
+        ],
+      ),
+    );
+    if (choice == null || !mounted) return;
+    var path = settings.ui.libraryPath;
+    if (choice == 'pick') {
+      final picked = await FilePicker.getDirectoryPath(dialogTitle: tr('Beatmap folder'));
+      if (picked == null || !mounted) return;
+      if (!await _readableDir(picked)) {
+        if (!mounted) return;
+        // Android 11+: a folder outside the app's dirs needs all-files
+        // access before dart:io can see it.
+        if (Platform.isAndroid && !await IncomingFiles.hasAllFilesAccess()) {
+          _snack(tr('Grant "All files access" for osuEdit, then pick the folder again'));
+          await IncomingFiles.requestAllFilesAccess();
+        } else {
+          _snack(tr('Cannot read this folder'));
+        }
+        return;
+      }
+      path = picked;
+    } else {
+      path = null;
+    }
+    settings.ui.libraryPath = path;
+    unawaited(settings.save());
+    final newLib = _library = await BeatmapLibrary.open();
+    SkinManager.instance.attach(SkinLibrary.beside(newLib)).ignore();
+    await _refresh();
+  }
+
   // ---------------------------------------------------------------------------
   // Song select
 
@@ -988,6 +1057,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onSelected: (v) => switch (v) {
             'osu' => _openOsuFile(),
             'language' => pickUiLanguage(context),
+            'library' => _changeLibraryFolder(),
             'defaults' => _openDefaultAppSettings(),
             'skins' => showSkinPicker(context, files: files),
             'update' => checkForUpdates(context, manual: true),
@@ -996,6 +1066,7 @@ class _HomeScreenState extends State<HomeScreen> {
           itemBuilder: (_) => [
             PopupMenuItem(value: 'osu', child: Text(tr('Open single .osu file'))),
             PopupMenuItem(value: 'language', child: Text(tr('Language…'))),
+            PopupMenuItem(value: 'library', child: Text(tr('Beatmap folder…'))),
             PopupMenuItem(value: 'skins', child: Text(tr('Skins…'))),
             if (Platform.isAndroid) PopupMenuItem(value: 'defaults', child: Text(tr('.osz default app settings'))),
             if (AppUpdater.supported) PopupMenuItem(value: 'update', child: Text(tr('Check for updates'))),

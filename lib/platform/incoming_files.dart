@@ -43,4 +43,30 @@ abstract final class IncomingFiles {
       return null;
     }
   }
+
+  /// Android 11+: whether the app may read and write shared storage with
+  /// normal file APIs (the "All files access" grant). True everywhere else
+  /// — desktop and older Android don't need it.
+  static Future<bool> hasAllFilesAccess() async {
+    try {
+      return await channel.invokeMethod<bool>('hasAllFilesAccess') ?? true;
+    } on MissingPluginException {
+      return true;
+    } on PlatformException {
+      return true;
+    }
+  }
+
+  /// Android 11+: opens the system page where "All files access" for this
+  /// app is granted (needed to use a shared folder such as osu!droid's
+  /// Songs). False if the screen couldn't be opened.
+  static Future<bool> requestAllFilesAccess() async {
+    try {
+      return await channel.invokeMethod<bool>('requestAllFilesAccess') ?? false;
+    } on MissingPluginException {
+      return false;
+    } on PlatformException {
+      return false;
+    }
+  }
 }

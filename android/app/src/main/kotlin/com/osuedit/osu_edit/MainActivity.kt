@@ -47,6 +47,10 @@ class MainActivity : FlutterActivity() {
                     result.success(openDefaultAppSettings())
                 } else if (call.method == "openFolder") {
                     result.success(openFolder(call.arguments as String))
+                } else if (call.method == "hasAllFilesAccess") {
+                    result.success(hasAllFilesAccess())
+                } else if (call.method == "requestAllFilesAccess") {
+                    result.success(requestAllFilesAccess())
                 } else if (call.method == "openUrl") {
                     result.success(openUrl(call.arguments as String))
                 } else if (call.method == "appVersion") {
@@ -112,6 +116,32 @@ class MainActivity : FlutterActivity() {
             }
         }
         return null
+    }
+
+    /**
+     * Android 11+: all-files access, needed for the library to live in a
+     * shared folder (e.g. osu!droid's Songs) rather than the app's private
+     * one. Older Android: file access is already granted.
+     */
+    private fun hasAllFilesAccess(): Boolean =
+        android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R ||
+            android.os.Environment.isExternalStorageManager()
+
+    /** Opens this app's "All files access" system page; false if it failed. */
+    private fun requestAllFilesAccess(): Boolean {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R) return true
+        return try {
+            startActivity(
+                Intent(
+                    android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                    Uri.parse("package:$packageName"),
+                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+            true
+        } catch (e: Exception) {
+            android.util.Log.w("osuEdit", "Could not open all-files access settings", e)
+            false
+        }
     }
 
     /** Opens a web page in the browser; false if none could be started. */
