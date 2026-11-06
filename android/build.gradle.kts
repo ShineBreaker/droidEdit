@@ -1,5 +1,8 @@
 allprojects {
     repositories {
+        // See settings.gradle.kts: Aliyun mirror first for machines that can't
+        // reach dl.google.com.
+        maven { url = uri("https://maven.aliyun.com/repository/google") }
         google()
         mavenCentral()
     }

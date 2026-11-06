@@ -11,6 +11,10 @@ pluginManagement {
     includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
 
     repositories {
+        // dl.google.com is unreachable from this machine (TLS reset), so the
+        // Aliyun mirror goes first. The official repositories stay as
+        // fallbacks; GitHub Actions reaches them normally.
+        maven { url = uri("https://maven.aliyun.com/repository/google") }
         google()
         mavenCentral()
         gradlePluginPortal()
