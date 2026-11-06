@@ -1,0 +1,97 @@
+name: Nightly
+
+# Builds a nightly APK when the current Beijing date already has commits.
+# Reuses tool/build_apk.sh and the release keystore setup of build-release.yml,
+# so the artifact is signed with the same key as a release and installs over it.
+
+on:
+  schedule:
+    - cron: '0 20 * * *'   # 04:00 Asia/Shanghai (UTC+8)
+  workflow_dispatch:
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    env:
+      FLUTTER_VERSION: '3.47.9'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # git log needs history to find today's commits
+
+      - name: Check for commits today (Asia/Shanghai)
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual dispatch: building regardless of commits."
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          since="$(TZ=Asia/Shanghai date '+%Y-%m-%d 00:00:00 +0800')"
+          echo "since: $since"
+          if git log --since="$since" --oneline | grep -q .; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git log --since="$since" --oneline | head -10
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No commits today; skipping."
+          fi
+
+      - name: Set up Flutter
+        if: steps.check.outputs.changed == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Set up JDK 17
+        if: steps.check.outputs.changed == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Restore release keystore
+        if: steps.check.outputs.changed == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "No keystore secrets configured; nightly will fall back to debug signing."
+            exit 0
+          fi
+          # Gradle resolves storeFile relative to android/app/ (the module dir);
+          # key.properties lives in android/ but its paths are module-relative.
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/droidedit.keystore
+          {
+            echo "storeFile=droidedit.keystore"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > android/key.properties
+
+      - name: Build APK
+        if: steps.check.outputs.changed == 'true'
+        run: ./tool/build_apk.sh
+
+      - name: Name artifact with commit
+        if: steps.check.outputs.changed == 'true'
+        id: apk
+        run: |
+          version=$(sed -n 's/^version: *\([0-9.]*\).*/\1/p' pubspec.yaml)
+          sha=$(git rev-parse --short HEAD)
+          src="build/app/outputs/flutter-apk/droidEdit-$version.apk"
+          dst="build/app/outputs/flutter-apk/droidEdit-$version-$sha.apk"
+          mv "$src" "$dst"
+          echo "path=$dst" >> "$GITHUB_OUTPUT"
+
+      - name: Upload nightly APK
+        if: steps.check.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: droidEdit-nightly-${{ github.sha }}
+          path: ${{ steps.apk.outputs.path }}
+          retention-days: 14
