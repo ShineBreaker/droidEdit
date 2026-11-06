@@ -1275,6 +1275,14 @@ class _BottomBar extends StatelessWidget {
     final right = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (compose)
+          IconButton(
+            // Gameplay preview: the map as in the game, from the current time.
+            tooltip: tr('Preview'),
+            visualDensity: VisualDensity.compact,
+            onPressed: () => c.previewMode = true,
+            icon: const Icon(Icons.videogame_asset),
+          ),
         IconButton(
           tooltip: c.isPlaying ? tr('Pause (Space)') : tr('Play (Space)'),
           onPressed: c.togglePlay,

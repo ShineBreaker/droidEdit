@@ -38,6 +38,10 @@ class PlayfieldPainter extends CustomPainter {
   PlayfieldPainter(this.controller, {this.overview = false, this.viewport, this.preview = false})
       : super(repaint: Listenable.merge([controller, controller.time, controller.playfieldZoom]));
 
+  /// Whether objects play their hit animation at their time: always in
+  /// preview (the gameplay look); editing follows the Display setting.
+  bool get _anim => preview || controller.hitAnimations;
+
   static final Expando<ui.Path> _bodyPaths = Expando();
 
   static const _selectionColour = Color(0xFFFFA726);
@@ -117,8 +121,8 @@ class PlayfieldPainter extends CustomPainter {
     for (var i = objs.length - 1; i >= 0; i--) {
       final h = objs[i];
       if (h is Spinner || t > h.time + ObjectVisuals.hitFadeOut || controller.isBeingReplaced(h)) continue;
-      final alpha = ObjectVisuals.approachAlpha(t, h.time, preempt, fadeIn, hitAnimations: controller.hitAnimations);
-      final markerAlpha = ObjectVisuals.hitMarkerAlpha(t, h.time, hitAnimations: controller.hitAnimations);
+      final alpha = ObjectVisuals.approachAlpha(t, h.time, preempt, fadeIn, hitAnimations: _anim);
+      final markerAlpha = ObjectVisuals.hitMarkerAlpha(t, h.time, hitAnimations: _anim);
       if (alpha <= 0 && markerAlpha <= 0) continue;
       final stack = controller.stackOffsetOf(h);
       final stacked = stack != Vec2.zero;
@@ -477,7 +481,7 @@ class PlayfieldPainter extends CustomPainter {
   /// number goes first) — [ObjectVisuals].
   void _drawHitCircle(Canvas canvas, Vec2 p, double r, Color colour, double t, double time, double preempt,
       double fadeIn, int number, {double parentAlpha = 1, String element = 'hitcircle'}) {
-    final anim = controller.hitAnimations;
+    final anim = _anim;
     final alpha = ObjectVisuals.circleAlpha(t, time, preempt, fadeIn, hitAnimations: anim) * parentAlpha;
     if (alpha <= 0) return;
     final hit = t >= time;
@@ -894,7 +898,7 @@ class PlayfieldPainter extends CustomPainter {
     final tail = path.tail;
     final tailArrow = path.positionAtDistance(path.distance - r);
     final headArrow = path.positionAtDistance(r);
-    final anim = controller.hitAnimations;
+    final anim = _anim;
     final whole = ObjectVisuals.sliderAlpha(t, end, hitAnimations: anim);
     for (var k = s.slides - 1; k >= 0; k--) {
       final time = s.time + span * (k + 1);

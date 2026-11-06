@@ -252,15 +252,32 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Preview mode: all chrome hidden, the map drawn as in gameplay.
-  /// Transient (not persisted); Compose only.
+  /// Preview mode: all chrome hidden, the map drawn as in gameplay (with
+  /// hit animations), playing from the current time. Transient (not
+  /// persisted); Compose only.
   bool get previewMode => _previewMode;
   bool _previewMode = false;
   set previewMode(bool v) {
     if (v == _previewMode) return;
     _previewMode = v;
+    if (v) {
+      if (!clock.isPlaying) {
+        _previewStartedPlayback = true;
+        _resetHitsoundCursor();
+        clock.play();
+        _wasPlaying = clock.isPlaying;
+      }
+    } else if (_previewStartedPlayback) {
+      // Playback the preview started stops with it; one that was already
+      // running keeps going.
+      _previewStartedPlayback = false;
+      pause();
+    }
     notifyListeners();
   }
+
+  /// Playback running now was started by entering preview mode.
+  bool _previewStartedPlayback = false;
 
   /// Whether circles and slider ends play the hit animation at their time
   /// instead of lazer's hit markers (white, fading) — [ObjectVisuals].

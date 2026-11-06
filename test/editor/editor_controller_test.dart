@@ -115,6 +115,34 @@ void main() {
     expect(c.beatmap.hitObjects[1], same(h));
   });
 
+  test('preview mode plays from the current time and pauses on exit', () {
+    final c = _controller();
+    addTearDown(c.dispose);
+    expect(c.isPlaying, isFalse);
+    c.previewMode = true;
+    expect(c.isPlaying, isTrue);
+    c.previewMode = false;
+    expect(c.isPlaying, isFalse);
+  });
+
+  test('exiting preview leaves playback it did not start running', () {
+    final c = _controller();
+    addTearDown(c.dispose);
+    c.togglePlay();
+    c.previewMode = true;
+    c.previewMode = false;
+    expect(c.isPlaying, isTrue);
+  });
+
+  test('pausing inside the preview is not undone by exiting it', () {
+    final c = _controller();
+    addTearDown(c.dispose);
+    c.previewMode = true;
+    c.togglePlay();
+    c.previewMode = false;
+    expect(c.isPlaying, isFalse);
+  });
+
   testWidgets('editor screen renders and plays without errors', (tester) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1;
