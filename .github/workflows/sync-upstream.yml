@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write   # push merge back to master
-  issues: write     # file an issue on conflict
+  contents: write   # push the merge back to master
+  issues: write     # open or comment on a sync failure issue
 
 env:
   UPSTREAM_URL: https://github.com/inix1257/osuEdit.git
@@ -18,11 +18,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        id: checkout
         with:
-          fetch-depth: 0  # need full history for merge-base check
+          fetch-depth: 0  # full history for the merge-base check
+          # PAT (repo + workflow) when set, so a merge that edits
+          # .github/workflows/ can be pushed. GITHUB_TOKEN cannot.
+          token: ${{ secrets.UPSTREAM_SYNC_TOKEN || github.token }}
 
       - name: Fetch upstream
-        run: git fetch --no-tags "$UPSTREAM_URL" "$UPSTREAM_BRANCH"
+        id: fetch
+        run: |
+          if ! git fetch --no-tags "$UPSTREAM_URL" "$UPSTREAM_BRANCH" \
+              >"$RUNNER_TEMP/fetch-error.txt" 2>&1; then
+            cat "$RUNNER_TEMP/fetch-error.txt"
+            exit 1
+          fi
 
       - name: Check for new upstream commits
         id: check
@@ -38,112 +48,345 @@ jobs:
           fi
 
       - name: Configure git identity for the merge
-        if: steps.check.outputs.has_new == 'true'
+        id: identity
+        if: success() && steps.check.outputs.has_new == 'true'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Merge upstream
         id: merge
-        if: steps.check.outputs.has_new == 'true'
+        if: success() && steps.check.outputs.has_new == 'true'
         run: |
-          if git merge --no-edit FETCH_HEAD; then
+          if git merge --no-edit FETCH_HEAD >"$RUNNER_TEMP/merge-error.txt" 2>&1; then
             echo "merged=true" >> "$GITHUB_OUTPUT"
           else
             echo "merged=false" >> "$GITHUB_OUTPUT"
-            echo "conflict_files=$(git diff --name-only --diff-filter=U | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+            cat "$RUNNER_TEMP/merge-error.txt"
+            git diff --name-only --diff-filter=U > "$RUNNER_TEMP/conflict-files.txt" || true
+            if [ -s "$RUNNER_TEMP/conflict-files.txt" ]; then
+              echo "Conflicted files:"
+              cat "$RUNNER_TEMP/conflict-files.txt"
+            fi
             git merge --abort || true
+            exit 1
           fi
 
       - name: Set up Flutter for sanity check
-        if: steps.merge.outputs.merged == 'true'
-        uses: subosito/flutter-action@v2
+        id: flutter
+        if: success() && steps.merge.outputs.merged == 'true'
+        # Pin of subosito/flutter-action v2.23.0 (the current v2 tag).
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
         with:
           flutter-version: '3.47.9'
           cache: true
 
       - name: Sanity check on merge result
         id: sanity
-        if: steps.merge.outputs.merged == 'true'
+        if: success() && steps.merge.outputs.merged == 'true'
         run: |
           set -o pipefail
-          if flutter pub get && flutter analyze lib/; then
+          if (flutter pub get && flutter analyze lib/) 2>&1 | tee "$RUNNER_TEMP/sanity-error.txt"; then
             echo "ok=true" >> "$GITHUB_OUTPUT"
           else
             echo "ok=false" >> "$GITHUB_OUTPUT"
             echo "Merge completed but analysis failed; not pushing."
             echo "Resolve locally and push manually."
+            exit 1
           fi
           # lib/ only: test/ pulls in flutter_soloud's native build hooks, which
           # need a clang toolchain beyond what ubuntu-latest provides.
 
       - name: Push merged master
-        if: steps.sanity.outputs.ok == 'true'
-        run: git push origin HEAD:master
-
-      - name: File an issue on sanity-check failure
-        if: steps.sanity.outputs.ok == 'false'
-        env:
-          GH_TOKEN: ${{ github.token }}
+        id: push
+        if: success() && steps.sanity.outputs.ok == 'true'
+        # Uses the checkout token: UPSTREAM_SYNC_TOKEN when set, else GITHUB_TOKEN.
         run: |
-          upstream_sha=$(git rev-parse --short FETCH_HEAD)
-          {
-            echo "Upstream \`$UPSTREAM_URL\` merged cleanly but \`flutter analyze lib/\` fails."
-            echo
-            echo "**Upstream HEAD:** \`$upstream_sha\`"
-            echo "**Fork HEAD:**     \`$(git rev-parse --short HEAD)\` (contains the merge, not pushed)"
-            echo
-            echo "Pull locally, fix the analysis errors, then push \`master\` manually."
-          } > /tmp/sanity-issue.md
-          existing=$(gh issue list --repo "${{ github.repository }}" \
-            --state open --search "[upstream-sync]" --limit 1 --json number --jq '.[0].number // empty')
-          if [ -n "$existing" ]; then
-            gh issue comment "$existing" --repo "${{ github.repository }}" --body-file /tmp/sanity-issue.md
-          else
-            gh issue create --repo "${{ github.repository }}" \
-              --title "[upstream-sync] analyze fails after clean merge $upstream_sha" \
-              --body-file /tmp/sanity-issue.md \
-              || echo "::warning::issue creation failed; merge left unpushed"
+          if ! git push origin HEAD:master >"$RUNNER_TEMP/push-error.txt" 2>&1; then
+            cat "$RUNNER_TEMP/push-error.txt"
+            exit 1
           fi
 
-      - name: File an issue on merge conflict
-        if: steps.merge.outputs.merged == 'false'
+      - name: Report sync failure
+        if: failure()
         env:
-          GH_TOKEN: ${{ github.token }}
-          CONFLICT_FILES: ${{ steps.merge.outputs.conflict_files }}
+          GH_TOKEN: ${{ secrets.UPSTREAM_SYNC_TOKEN || github.token }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CHECKOUT_OUTCOME: ${{ steps.checkout.outcome }}
+          FETCH_OUTCOME: ${{ steps.fetch.outcome }}
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
+          IDENTITY_OUTCOME: ${{ steps.identity.outcome }}
+          MERGE_OUTCOME: ${{ steps.merge.outcome }}
+          FLUTTER_OUTCOME: ${{ steps.flutter.outcome }}
+          SANITY_OUTCOME: ${{ steps.sanity.outcome }}
+          PUSH_OUTCOME: ${{ steps.push.outcome }}
         run: |
-          upstream_sha=$(git rev-parse --short FETCH_HEAD)
-          upstream_subj=$(git log -1 --format=%s FETCH_HEAD)
-          fork_sha=$(git rev-parse --short HEAD)
-          title="[upstream-sync] merge conflict with upstream $upstream_sha"
+          set -euo pipefail
+          : "${RUNNER_TEMP:=/tmp}"
+
+          kind="other"
+          if [ "${CHECKOUT_OUTCOME}" = "failure" ]; then
+            kind="checkout"
+          elif [ "${FETCH_OUTCOME}" = "failure" ]; then
+            kind="fetch"
+          elif [ "${CHECK_OUTCOME}" = "failure" ]; then
+            kind="check"
+          elif [ "${IDENTITY_OUTCOME}" = "failure" ]; then
+            kind="identity"
+          elif [ "${MERGE_OUTCOME}" = "failure" ]; then
+            if [ -s "$RUNNER_TEMP/conflict-files.txt" ]; then
+              kind="conflict"
+            else
+              kind="merge"
+            fi
+          elif [ "${FLUTTER_OUTCOME}" = "failure" ]; then
+            kind="flutter"
+          elif [ "${SANITY_OUTCOME}" = "failure" ]; then
+            kind="sanity"
+          elif [ "${PUSH_OUTCOME}" = "failure" ]; then
+            kind="push"
+          fi
+          echo "Sync failure kind: ${kind}"
+
+          upstream_sha="未知"
+          fork_sha="未知"
+          origin_sha="未知"
+          upstream_subj=""
+          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+            if git cat-file -e FETCH_HEAD >/dev/null 2>&1; then
+              upstream_sha=$(git rev-parse --short FETCH_HEAD)
+              upstream_subj=$(git log -1 --format=%s FETCH_HEAD | tr '\n@`' '   ' | tr -s ' ' | sed 's/^ //; s/ $//')
+              upstream_subj=${upstream_subj:0:180}
+            fi
+            fork_sha=$(git rev-parse --short HEAD 2>/dev/null || echo "未知")
+            if git rev-parse --verify origin/master >/dev/null 2>&1; then
+              origin_sha=$(git rev-parse --short origin/master)
+            fi
+          fi
+
+          sha_bit=""
+          if [ "$upstream_sha" != "未知" ]; then
+            sha_bit=" ${upstream_sha}"
+          fi
+
+          case "$kind" in
+            checkout)
+              title="[upstream-sync] 检出仓库失败"
+              reason="检出本仓库失败，同步没有开始。"
+              ;;
+            fetch)
+              title="[upstream-sync] 拉取上游失败"
+              reason="拉取上游失败，没有合并，也没有推送。"
+              ;;
+            check)
+              title="[upstream-sync] 检查上游更新失败"
+              reason="拉取已完成，但判断上游是否已经合入时失败。"
+              ;;
+            identity)
+              title="[upstream-sync] 配置 Git 身份失败"
+              reason="准备合并提交身份时失败，没有合并，也没有推送。"
+              ;;
+            conflict)
+              title="[upstream-sync] 合并冲突${sha_bit}"
+              reason="与上游合并发生冲突。冲突已中止，没有推送。"
+              ;;
+            merge)
+              title="[upstream-sync] 合并上游失败${sha_bit}"
+              reason="合并上游失败。没有推送。"
+              ;;
+            flutter)
+              title="[upstream-sync] Flutter 环境准备失败"
+              reason="上游已在运行器本地合并，但 Flutter 环境没有准备好，所以没有执行 flutter analyze，也没有推送。"
+              ;;
+            sanity)
+              title="[upstream-sync] flutter analyze 失败${sha_bit}"
+              reason="上游已在运行器本地合并，但 \`flutter analyze lib/\` 未通过，所以没有推送。"
+              ;;
+            push)
+              title="[upstream-sync] 推送 master 失败${sha_bit}"
+              reason="合并与 \`flutter analyze lib/\` 已通过，但推送到 \`master\` 失败。结果只留在这次运行里。"
+              ;;
+            *)
+              title="[upstream-sync] 同步失败${sha_bit}"
+              reason="同步作业失败。请打开下面的运行日志查看具体步骤。"
+              ;;
+          esac
+
+          redact_file() {
+            local f="$1"
+            [ -f "$f" ] && [ -s "$f" ] || return 0
+            sed -E \
+              -e 's/(ghs_|github_pat_|ghp_|gho_|ghu_)[A-Za-z0-9_]+/[redacted]/g' \
+              -e 's/x-access-token:[^@[:space:]]+/x-access-token:[redacted]/g' \
+              -e 's/```/` ` `/g' \
+              "$f" | tail -n 60
+          }
+
+          excerpt=""
+          case "$kind" in
+            fetch) excerpt=$(redact_file "$RUNNER_TEMP/fetch-error.txt" || true) ;;
+            conflict|merge) excerpt=$(redact_file "$RUNNER_TEMP/merge-error.txt" || true) ;;
+            sanity) excerpt=$(redact_file "$RUNNER_TEMP/sanity-error.txt" || true) ;;
+            push) excerpt=$(redact_file "$RUNNER_TEMP/push-error.txt" || true) ;;
+          esac
+
+          workflow_files=""
+          if git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+              && git rev-parse --verify origin/master >/dev/null 2>&1; then
+            workflow_files=$(
+              {
+                git diff --name-only origin/master HEAD -- .github/workflows 2>/dev/null || true
+                if git cat-file -e FETCH_HEAD >/dev/null 2>&1; then
+                  git diff --name-only origin/master FETCH_HEAD -- .github/workflows 2>/dev/null || true
+                fi
+              } | awk 'NF && !seen[$0]++'
+            )
+          fi
+
+          subj_suffix=""
+          if [ -n "$upstream_subj" ]; then
+            subj_suffix=" — ${upstream_subj}"
+          fi
+
+          body="$RUNNER_TEMP/sync-issue.md"
           {
-            echo "Upstream \`$UPSTREAM_URL\` has new commits that conflict with this fork."
+            echo "上游同步失败：${reason}"
             echo
-            echo "**Upstream HEAD:** \`$upstream_sha\` — $upstream_subj"
-            echo "**Fork HEAD:**     \`$fork_sha\`"
-            echo "**Conflicted files:** \`$CONFLICT_FILES\`"
+            echo "- **运行：** ${RUN_URL}"
+            echo "- **上游仓库：** ${UPSTREAM_URL}"
+            echo "- **上游分支：** \`${UPSTREAM_BRANCH}\`"
+            echo "- **上游 HEAD：** \`${upstream_sha}\`${subj_suffix}"
+            echo "- **origin/master：** \`${origin_sha}\`"
+            echo "- **运行器 HEAD：** \`${fork_sha}\`（失败时不会推送）"
+            echo "- **冲突文件：**"
+            if [ -s "$RUNNER_TEMP/conflict-files.txt" ]; then
+              while IFS= read -r path; do
+                [ -n "$path" ] || continue
+                printf '  - `%s`\n' "$(printf '%s' "$path" | tr '`' "'")"
+              done < "$RUNNER_TEMP/conflict-files.txt"
+            else
+              echo "  - 无"
+            fi
             echo
-            echo "Resolve locally:"
+            echo "- **步骤结果：** checkout=\`${CHECKOUT_OUTCOME}\` fetch=\`${FETCH_OUTCOME}\` check=\`${CHECK_OUTCOME}\` identity=\`${IDENTITY_OUTCOME}\` merge=\`${MERGE_OUTCOME}\` flutter=\`${FLUTTER_OUTCOME}\` sanity=\`${SANITY_OUTCOME}\` push=\`${PUSH_OUTCOME}\`"
+            if [ -n "$excerpt" ]; then
+              echo
+              echo "### 日志摘录"
+              echo
+              echo '```'
+              printf '%s\n' "$excerpt"
+              echo '```'
+            fi
             echo
-            echo '```bash'
-            echo "git fetch $UPSTREAM_URL $UPSTREAM_BRANCH"
-            echo "git merge FETCH_HEAD"
-            echo "# resolve conflicts, keep fork's applicationId / appLabel / updater repo"
-            echo "git push origin master"
-            echo '```'
+            echo "### 本地处理"
             echo
-            echo "Remember to keep:"
-            echo '- `applicationId = "io.github.shinebreaker.droidedit"` (upstream uses `com.osuedit.osu_edit`)'
-            echo '- `appLabel` → `droidEdit` / `droidEdit Dev`'
-            echo '- `AppUpdater.repo` → `ShineBreaker/droidEdit`, `_apkName` → `droidEdit-*.apk`'
-          } > /tmp/sync-issue.md
-          # De-dup: reuse an open sync issue if one exists, else create.
-          existing=$(gh issue list --repo "${{ github.repository }}" \
-            --state open --search "[upstream-sync]" --limit 1 --json number --jq '.[0].number // empty')
-          if [ -n "$existing" ]; then
-            gh issue comment "$existing" --repo "${{ github.repository }}" --body-file /tmp/sync-issue.md
-            echo "Commented on existing sync issue #$existing"
+            case "$kind" in
+              fetch)
+                echo "确认上游仓库可以公开访问，然后在 Actions 里重新运行 **Sync Upstream**。"
+                echo
+                echo '```bash'
+                echo "git ls-remote ${UPSTREAM_URL} ${UPSTREAM_BRANCH}"
+                echo '```'
+                ;;
+              sanity)
+                echo "请在本机重新合并上游，修掉 \`lib/\` 的分析结果后再推送。\`test/\` 不在这次检查范围内。"
+                echo
+                echo '```bash'
+                echo "git fetch ${UPSTREAM_URL} ${UPSTREAM_BRANCH}"
+                echo "git merge FETCH_HEAD"
+                echo "flutter pub get"
+                echo "flutter analyze lib/"
+                echo "git push origin master"
+                echo '```'
+                ;;
+              push)
+                echo "请在本机重新合并并推送到 \`master\`。若日志里出现 \`refusing to allow a GitHub App to create or update workflow\`，按下一节添加 \`UPSTREAM_SYNC_TOKEN\` 后重跑本工作流即可，不必手改 workflow。"
+                echo
+                echo '```bash'
+                echo "git fetch ${UPSTREAM_URL} ${UPSTREAM_BRANCH}"
+                echo "git merge FETCH_HEAD"
+                echo "flutter pub get && flutter analyze lib/"
+                echo "git push origin master"
+                echo '```'
+                ;;
+              *)
+                echo "在本机拉取上游并完成合并。请保留本 fork 的应用标识，不要改回上游："
+                echo
+                echo "- \`applicationId = \"io.github.shinebreaker.droidedit\"\`（上游是 \`com.osuedit.osu_edit\`）"
+                echo "- \`appLabel\` 使用 \`droidEdit\` / \`droidEdit Dev\`"
+                echo "- \`AppUpdater.repo\` 保持 \`ShineBreaker/droidEdit\`，\`_apkName\` 使用 \`droidEdit-*.apk\`"
+                echo
+                echo '```bash'
+                echo "git fetch ${UPSTREAM_URL} ${UPSTREAM_BRANCH}"
+                echo "git merge FETCH_HEAD"
+                echo "flutter pub get && flutter analyze lib/"
+                echo "git push origin master"
+                echo '```'
+                ;;
+            esac
+            echo
+            echo "### 推送 workflow 变更"
+            echo
+            echo "默认 \`GITHUB_TOKEN\` 不能推送 \`.github/workflows/\` 下的文件（没有 \`workflows\` 权限）。上游如果改了 workflow，推送会被拒绝。请在仓库 Settings → Secrets and variables → Actions 添加 \`UPSTREAM_SYNC_TOKEN\`（PAT，权限 \`repo\` + \`workflow\`）。本工作流会优先用它推送，并用它创建或评论 issue。"
+            if [ -n "$workflow_files" ]; then
+              echo
+              echo "本次与 \`origin/master\` 有差异的 workflow 文件："
+              printf '%s\n' "$workflow_files" | while IFS= read -r path; do
+                [ -n "$path" ] || continue
+                printf -- '- `%s`\n' "$(printf '%s' "$path" | tr '`' "'")"
+              done
+            fi
+          } > "$body"
+
+          # The label is part of de-dup. Creating it is best-effort; issue
+          # creation below still runs when this cannot.
+          gh label create upstream-sync \
+            --repo "$REPO" \
+            --color B60205 \
+            --description "上游自动同步失败" \
+            --force || true
+
+          existing=""
+          if list_out=$(gh issue list --repo "$REPO" --state open \
+              --label "upstream-sync" --limit 1 \
+              --json number --jq '.[0].number // empty' 2>"$RUNNER_TEMP/label-list.err"); then
+            existing=$(printf '%s' "$list_out" | tr -d '[:space:]')
           else
-            gh issue create --repo "${{ github.repository }}" --title "$title" --body-file /tmp/sync-issue.md \
-              || echo "::warning::issue creation failed (issues may be disabled); merge conflict left unresolved"
+            echo "按标签列出 issue 失败：" >&2
+            cat "$RUNNER_TEMP/label-list.err" >&2 || true
+          fi
+
+          if [ -z "$existing" ]; then
+            if list_out=$(gh issue list --repo "$REPO" --state open \
+                --search "[upstream-sync] in:title" --limit 1 \
+                --json number --jq '.[0].number // empty' 2>"$RUNNER_TEMP/title-list.err"); then
+              existing=$(printf '%s' "$list_out" | tr -d '[:space:]')
+            else
+              echo "按标题搜索 issue 失败：" >&2
+              cat "$RUNNER_TEMP/title-list.err" >&2 || true
+            fi
+          fi
+
+          report_error() {
+            echo "::error::无法创建或评论 upstream-sync issue。请确认仓库已开启 Issues，且 token 有 issues 写权限。常见错误：GraphQL: Resource not accessible by integration (createIssue)。可设置 secret UPSTREAM_SYNC_TOKEN（PAT，repo + workflow）后重跑。" >&2
+            exit 1
+          }
+
+          if [ -n "$existing" ]; then
+            if ! gh issue comment "$existing" --repo "$REPO" --body-file "$body"; then
+              report_error
+            fi
+            gh issue edit "$existing" --repo "$REPO" --add-label upstream-sync || true
+            echo "Commented on existing sync issue #${existing}"
+          elif ! gh issue create --repo "$REPO" \
+              --title "$title" \
+              --body-file "$body" \
+              --label upstream-sync; then
+            echo "带标签创建 issue 失败，改为不带标签重试。" >&2
+            if ! gh issue create --repo "$REPO" \
+                --title "$title" \
+                --body-file "$body"; then
+              report_error
+            fi
           fi
