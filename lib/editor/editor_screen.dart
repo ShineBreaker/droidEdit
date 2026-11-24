@@ -1392,13 +1392,13 @@ class _ContextOverlay extends StatelessWidget {
   });
 
   /// Width of the free strip on each side of the playfield's object area
-  /// (the playfield plus the margin its edge circles may reach into). Where
-  /// that strip is too narrow for the buttons (screens close to the
-  /// playfield's own aspect ratio), the panels reach into the margin only as
-  /// far as needed, never over the playfield itself.
+  /// (the gameplay screen the view fits). Where that strip is too narrow
+  /// for the buttons (screens close to the playfield's own aspect ratio),
+  /// the panels reach into the screen border only as far as needed, never
+  /// over the playfield itself.
   static double sideWidth(Size area) {
     final tf = PlayfieldTransform.fit(area);
-    final beyondMargin = tf.origin.dx - PlayfieldTransform.marginX * tf.scale - 4;
+    final beyondMargin = tf.origin.dx - PlayfieldTransform.screenLeft * tf.scale - 4;
     if (beyondMargin >= _minWidth) return math.min(beyondMargin, _maxWidth);
     return math.min(tf.origin.dx - 4, _minWidth);
   }

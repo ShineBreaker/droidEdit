@@ -275,7 +275,8 @@ void main() {
     expect(c.additionState(HitSoundFlags.whistle), isTrue);
 
     // Selecting a slider shows the action buttons beside the playfield; they
-    // fit the screen and stay clear of the playfield's object area.
+    // fit the screen and stay clear of the playfield's object area (the
+    // gameplay screen the view fits, playfield plus its 64px side borders).
     c.select(c.beatmap.hitObjects[2]);
     await tester.pump();
     expect(find.byTooltip('Delete (Del)'), findsOneWidget);
@@ -283,8 +284,8 @@ void main() {
     expect(find.byTooltip('More repeats'), findsNothing); // slider settings are not in the strips
     final field = tester.getRect(find.byType(PlayfieldView));
     final tf = PlayfieldTransform.fit(field.size);
-    final objectLeft = field.left + tf.origin.dx - PlayfieldTransform.marginX * tf.scale;
-    final objectRight = field.left + tf.origin.dx + (512 + PlayfieldTransform.marginX) * tf.scale;
+    final objectLeft = field.left + tf.origin.dx - PlayfieldTransform.screenLeft * tf.scale;
+    final objectRight = field.left + tf.origin.dx + (512 + PlayfieldTransform.screenLeft) * tf.scale;
     expect(tester.getRect(find.byTooltip('Delete (Del)')).right, lessThanOrEqualTo(objectLeft));
     expect(tester.getRect(find.byTooltip('Rotate… (Ctrl+Shift+R)')).left, greaterThanOrEqualTo(objectRight));
     expect(tester.takeException(), isNull);

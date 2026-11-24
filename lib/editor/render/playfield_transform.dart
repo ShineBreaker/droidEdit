@@ -31,23 +31,27 @@ class PlayfieldZoom {
 }
 
 /// Maps osu!pixels (512x384 playfield) to widget pixels, letterboxed and
-/// centred, with a margin around it for circles at the edges.
+/// centred. The fitted box is the whole 640x480 gameplay screen the
+/// playfield sits in (64px left/right, 56px top/bottom in osu!pixels), so
+/// notes keep the same on-screen proportion as in the game.
 class PlayfieldTransform {
   final double scale;
   final Offset origin;
 
   const PlayfieldTransform(this.scale, this.origin);
 
-  /// Margins around the playfield in osu!pixels. Landscape screens are
-  /// short, so the vertical one is small to let the playfield fill the
-  /// height (circles at the very top / bottom edge are slightly clipped).
-  static const marginX = 48.0;
-  static const marginY = 20.0;
+  /// The gameplay screen around the 512x384 playfield in osu!pixels
+  /// (640x480, the playfield at offset 64,56): what the game fits to the
+  /// display, so an edge circle reaches as far off the playfield as it
+  /// does there. [screenLeft]/[screenTop] are the playfield's offset in
+  /// that screen.
+  static const screenLeft = 64.0, screenTop = 56.0;
+  static const screenWidth = 640.0, screenHeight = 480.0;
 
   /// The fitted transform, magnified by [zoom] around its centre point.
   factory PlayfieldTransform.fit(Size size, [PlayfieldZoom zoom = PlayfieldZoom.none]) {
-    const w = OsuRules.playfieldWidth + marginX * 2;
-    const h = OsuRules.playfieldHeight + marginY * 2;
+    const w = screenWidth;
+    const h = screenHeight;
     final fitted = math.min(size.width / w, size.height / h);
     final s = (fitted <= 0 ? 1 : fitted) * zoom.factor;
     final ox = size.width / 2 - zoom.centre.x * s;

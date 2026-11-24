@@ -1195,9 +1195,7 @@ class PlayfieldOverview extends StatefulWidget {
   /// Preview size for a main view of [viewport]: a fraction of its width,
   /// with the playfield's fitted aspect ratio.
   static Size sizeFor(Size viewport) {
-    const aspect =
-        (OsuRules.playfieldWidth + PlayfieldTransform.marginX * 2) /
-        (OsuRules.playfieldHeight + PlayfieldTransform.marginY * 2);
+    const aspect = PlayfieldTransform.screenWidth / PlayfieldTransform.screenHeight;
     final w = (viewport.width * 0.24).clamp(120.0, 200.0).toDouble();
     return Size(w, w / aspect);
   }
